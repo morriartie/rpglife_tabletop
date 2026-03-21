@@ -1,0 +1,94 @@
+{
+  "SessionComponent": {
+    "sessionId": "string"
+  },
+  "PlayerComponent": {
+    "clientId": "string"
+  },
+  "NameComponent": {
+    "displayName": "string"
+  },
+  "TileComponent": {
+    "type": "enum(GRASS_PATH, DIRT_PATH, ROCK_PATH, BRICK_PATH, CITY, FOREST, LAKE)"
+  },
+  "CityComponent": {
+    "description": "string",
+    "level": "number",
+    "biome": "enum(GRASS_PATH, DIRT_PATH, ROCK_PATH, BRICK_PATH, FOREST, LAKE)"
+  },
+  "HexPositionComponent": {
+    "q": "number",
+    "r": "number",
+    "x": "number",
+    "y": "number"
+  },
+  "PositionComponent": {
+    "currentTileId": "number"
+  },
+  "EncounterComponent": {
+    "mobEntityId": "number",
+    "isDefeated": "boolean"
+  },
+  "MobComponent": {
+    "type": "enum(WOLF, BAT, GOBLIN, SOLDIER, THIEF, SKELETON)"
+  },
+  "StatsComponent": {
+    "maxHp": "number",
+    "currentHp": "number",
+    "baseAttack": "number",
+    "baseDefense": "number"
+  },
+  "CombatStateComponent": {
+    "targetEntityId": "number",
+    "isPlayerTurn": "boolean"
+  },
+  "ItemComponent": {
+    "type": "enum(SWORD, BOW, MAGIC_BOOK, COPPER_RING, HOOD, LEATHER_CAP, PLATE_HELM, PLATE_ARMOR, LEATHER_ARMOR, LEATHER_BOOTS, PLATE_BOOTS, ROBE, MAGE_BOOTS)",
+    "attackBonus": "number",
+    "defenseBonus": "number",
+    "dice": [
+      {
+        "sides": "number",
+        "keywords": [
+          "string"
+        ]
+      }
+    ]
+  },
+  "PickableComponent": {
+    "weight": "number"
+  },
+  "InventoryComponent": {
+    "heldEntityIds": [
+      "number"
+    ],
+    "maxWeightCapacity": "number",
+    "currentWeight": "number"
+  },
+  "EquipmentComponent": {
+    "headEntityId": "number",
+    "bodyEntityId": "number",
+    "feetEntityId": "number",
+    "weaponEntityId": "number",
+    "ringEntityId": "number"
+  },
+  "DicePoolComponent": {
+    "diceQueue": [
+      {
+        "sides": "number",
+        "keywords": [
+          "string"
+        ],
+        "sourceItemEntityId": "number"
+      }
+    ]
+  },
+  "LootDropComponent": {
+    "lootTable": [
+      {
+        "itemType": "string",
+        "dropChanceProbability": "number"
+      }
+    ]
+  }
+}

@@ -1,0 +1,266 @@
+{
+  "1": {
+    "SessionComponent": {
+      "sessionId": "session_88"
+    },
+    "NameComponent": {
+      "displayName": "Start Forest"
+    },
+    "TileComponent": {
+      "type": "FOREST"
+    },
+    "GraphNodeComponent": {
+      "nextTileIds": [
+        2
+      ],
+      "previousTileIds": []
+    }
+  },
+  "2": {
+    "SessionComponent": {
+      "sessionId": "session_88"
+    },
+    "NameComponent": {
+      "displayName": "Muddy Road"
+    },
+    "TileComponent": {
+      "type": "DIRT_PATH"
+    },
+    "GraphNodeComponent": {
+      "nextTileIds": [],
+      "previousTileIds": [
+        1
+      ]
+    },
+    "EncounterComponent": {
+      "mobEntityId": 100,
+      "isDefeated": false
+    }
+  },
+  "50": {
+    "SessionComponent": {
+      "sessionId": "session_88"
+    },
+    "NameComponent": {
+      "displayName": "Hero"
+    },
+    "PlayerComponent": {
+      "clientId": "client_abc123"
+    },
+    "PositionComponent": {
+      "currentTileId": 1
+    },
+    "StatsComponent": {
+      "maxHp": 100,
+      "currentHp": 100,
+      "baseAttack": 15,
+      "baseDefense": 5
+    },
+    "InventoryComponent": {
+      "heldEntityIds": [],
+      "maxWeightCapacity": 50,
+      "currentWeight": 0
+    },
+    "EquipmentComponent": {
+      "headEntityId": null,
+      "bodyEntityId": null,
+      "feetEntityId": null,
+      "weaponEntityId": null,
+      "ringEntityId": null
+    }
+  },
+  "100": {
+    "SessionComponent": {
+      "sessionId": "session_88"
+    },
+    "NameComponent": {
+      "displayName": "Rabid Wolf"
+    },
+    "MobComponent": {
+      "type": "WOLF"
+    },
+    "PositionComponent": {
+      "currentTileId": 2
+    },
+    "StatsComponent": {
+      "maxHp": 30,
+      "currentHp": 30,
+      "baseAttack": 8,
+      "baseDefense": 2
+    },
+    "LootDropComponent": {
+      "lootTable": [
+        {
+          "itemType": "LEATHER_BOOTS",
+          "dropChanceProbability": 0.5
+        }
+      ]
+    }
+  },
+  "200": {
+    "SessionComponent": {
+      "sessionId": "session_88"
+    },
+    "NameComponent": {
+      "displayName": "Rusty Sword"
+    },
+    "ItemComponent": {
+      "type": "SWORD",
+      "attackBonus": 5,
+      "defenseBonus": 0
+    },
+    "PickableComponent": {
+      "weight": 5
+    },
+    "PositionComponent": {
+      "currentTileId": 1
+    }
+  },
+  "201": {
+    "SessionComponent": {
+      "sessionId": "session_88"
+    },
+    "NameComponent": {
+      "displayName": "Bob the Pocket Goblin"
+    },
+    "MobComponent": {
+      "type": "GOBLIN"
+    },
+    "StatsComponent": {
+      "maxHp": 20,
+      "currentHp": 20,
+      "baseAttack": 5,
+      "baseDefense": 2
+    },
+    "PickableComponent": {
+      "weight": 15
+    },
+    "ItemComponent": {
+      "type": "COPPER_RING",
+      "attackBonus": 0,
+      "defenseBonus": 2
+    },
+    "PositionComponent": {
+      "currentTileId": 1
+    }
+  },
+  "300": {
+    "NameComponent": {
+      "displayName": "City 1 (Template)"
+    },
+    "TileComponent": {
+      "type": "CITY"
+    },
+    "CityComponent": {
+      "description": "A bustling city.",
+      "level": 1,
+      "biome": "GRASS_PATH"
+    },
+    "GraphNodeComponent": {
+      "nextTileIds": [],
+      "previousTileIds": []
+    }
+  },
+  "301": {
+    "NameComponent": {
+      "displayName": "City 2 (Template)"
+    },
+    "TileComponent": {
+      "type": "CITY"
+    },
+    "CityComponent": {
+      "description": "A bustling city.",
+      "level": 1,
+      "biome": "DIRT_PATH"
+    },
+    "GraphNodeComponent": {
+      "nextTileIds": [],
+      "previousTileIds": []
+    }
+  },
+  "302": {
+    "NameComponent": {
+      "displayName": "City 3 (Template)"
+    },
+    "TileComponent": {
+      "type": "CITY"
+    },
+    "CityComponent": {
+      "description": "A bustling city.",
+      "level": 1,
+      "biome": "ROCK_PATH"
+    },
+    "GraphNodeComponent": {
+      "nextTileIds": [],
+      "previousTileIds": []
+    }
+  },
+  "303": {
+    "NameComponent": {
+      "displayName": "City 4 (Template)"
+    },
+    "TileComponent": {
+      "type": "CITY"
+    },
+    "CityComponent": {
+      "description": "A bustling city.",
+      "level": 1,
+      "biome": "BRICK_PATH"
+    },
+    "GraphNodeComponent": {
+      "nextTileIds": [],
+      "previousTileIds": []
+    }
+  },
+  "304": {
+    "NameComponent": {
+      "displayName": "City 5 (Template)"
+    },
+    "TileComponent": {
+      "type": "CITY"
+    },
+    "CityComponent": {
+      "description": "A bustling city.",
+      "level": 1,
+      "biome": "FOREST"
+    },
+    "GraphNodeComponent": {
+      "nextTileIds": [],
+      "previousTileIds": []
+    }
+  },
+  "305": {
+    "NameComponent": {
+      "displayName": "City 6 (Template)"
+    },
+    "TileComponent": {
+      "type": "CITY"
+    },
+    "CityComponent": {
+      "description": "A bustling city.",
+      "level": 1,
+      "biome": "LAKE"
+    },
+    "GraphNodeComponent": {
+      "nextTileIds": [],
+      "previousTileIds": []
+    }
+  },
+  "306": {
+    "NameComponent": {
+      "displayName": "City 7 (Template)"
+    },
+    "TileComponent": {
+      "type": "CITY"
+    },
+    "CityComponent": {
+      "description": "A bustling city.",
+      "level": 1,
+      "biome": "GRASS_PATH"
+    },
+    "GraphNodeComponent": {
+      "nextTileIds": [],
+      "previousTileIds": []
+    }
+  }
+}

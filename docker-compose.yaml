@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./api:/app/api
+      - ./game:/app/game
+    environment:
+      - PYTHONPATH=/app
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: test_dash/Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./test_dash:/app
+      - ./api:/api
+    environment:
+      - PYTHONPATH=/app
+      - API_URL=http://api:8000
+    depends_on:
+      - api
