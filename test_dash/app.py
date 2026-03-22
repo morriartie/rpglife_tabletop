@@ -145,12 +145,12 @@ with tab1:
                     <script>
                         const API_URL = "{API_URL}";
                         const GAME_ID = "{st.session_state.selected_game}";
-                        // Find a player that belongs to this session (just take the first one for testing)
-                        const PLAYER_ID = players.length > 0 ? players[0].id : null;
-                        
                         const nodes = {json.dumps(nodes_data)};
                         const edges = {json.dumps(edges_data)};
                         const players = {json.dumps(players_data)};
+                        
+                        // Find a player that belongs to this session (just take the first one for testing)
+                        const PLAYER_ID = players.length > 0 ? players[0].id : null;
                         
                         const canvas = document.getElementById('gameCanvas');
                         const ctx = canvas.getContext('2d');
@@ -181,6 +181,18 @@ with tab1:
                         if (maxX === minX) {{ maxX += 10; minX -= 10; }}
                         if (maxY === minY) {{ maxY += 10; minY -= 10; }}
                         
+                        function drawHexShape(ctx, cx, cy, sz) {{
+                            ctx.beginPath();
+                            for (let i = 0; i < 6; i++) {{
+                                const angle_rad = Math.PI / 180 * (60 * i);
+                                const px = cx + sz * Math.cos(angle_rad);
+                                const py = cy + sz * Math.sin(angle_rad);
+                                if (i === 0) ctx.moveTo(px, py);
+                                else ctx.lineTo(px, py);
+                            }}
+                            ctx.closePath();
+                        }}
+
                         function draw() {{
                             ctx.clearRect(0, 0, width, height);
                             if (nodes.length === 0) return;
@@ -190,21 +202,25 @@ with tab1:
                             const drawHeight = height - padding * 2;
                             
                             // Calculate node positions 
+                            const dataWidth = maxX === minX ? 1 : (maxX - minX);
+                            const dataHeight = maxY === minY ? 1 : (maxY - minY);
+                            const scale = Math.min(drawWidth / dataWidth, drawHeight / dataHeight) * 0.95;
+                            const xOffset = padding + (drawWidth - dataWidth * scale) / 2;
+                            const yOffset = padding + (drawHeight - dataHeight * scale) / 2;
+                            const hexSize = 30 * scale;
+
                             nodes.forEach((node) => {{
-                                const nx = (node.x - minX) / (maxX - minX);
-                                const ny = (node.y - minY) / (maxY - minY);
-                                const x = padding + nx * drawWidth;
-                                const y = padding + ny * drawHeight;
-                                nodePositions[node.id] = {{ x, y, tile: node, radius: node.type === 'CITY' ? 24 : 14 }};
+                                const x = xOffset + (node.x - minX) * scale;
+                                const y = yOffset + (node.y - minY) * scale;
+                                nodePositions[node.id] = {{ x, y, tile: node, radius: hexSize, hexSize: hexSize }};
                             }});
                             
-                            // Draw path connecting them
-                            ctx.lineWidth = 6;
+                            // Draw base edges (if any)
+                            ctx.lineWidth = 4;
                             ctx.strokeStyle = '#444';
                             edges.forEach(edge => {{
                                 const p1 = nodePositions[edge.from];
                                 const p2 = nodePositions[edge.to];
-                                
                                 if (p1 && p2) {{
                                     ctx.beginPath();
                                     ctx.moveTo(p1.x, p1.y);
@@ -212,12 +228,26 @@ with tab1:
                                     ctx.stroke();
                                 }}
                             }});
+
+                            // Draw preview path
+                            if (typeof currentPath !== 'undefined' && currentPath && currentPath.length > 1) {{
+                                ctx.lineWidth = 4;
+                                ctx.strokeStyle = '#00e5ff';
+                                ctx.beginPath();
+                                for (let i = 0; i < currentPath.length; i++) {{
+                                    const p = nodePositions[currentPath[i]];
+                                    if (p) {{
+                                        if (i === 0) ctx.moveTo(p.x, p.y);
+                                        else ctx.lineTo(p.x, p.y);
+                                    }}
+                                }}
+                                ctx.stroke();
+                            }}
                             
                             // Draw nodes
                             nodes.forEach(tile => {{
                                 const pos = nodePositions[tile.id];
-                                ctx.beginPath();
-                                ctx.arc(pos.x, pos.y, pos.radius, 0, Math.PI * 2);
+                                drawHexShape(ctx, pos.x, pos.y, pos.hexSize - 0.5);
                                 
                                 let fillStyle = '#888';
                                 switch(tile.type) {{
@@ -231,16 +261,16 @@ with tab1:
                                 ctx.fillStyle = fillStyle;
                                 ctx.fill();
                                 
-                                ctx.lineWidth = 3;
+                                ctx.lineWidth = 1.5;
                                 ctx.strokeStyle = tile.type === 'CITY' ? '#ff8f00' : '#222';
                                 ctx.stroke();
                                 
                                 // Node label if city
                                 if (tile.type === 'CITY') {{
-                                    ctx.fillStyle = '#fff';
+                                    ctx.fillStyle = '#000';
                                     ctx.font = 'bold 12px sans-serif';
                                     ctx.textAlign = 'center';
-                                    ctx.fillText(tile.name, pos.x, pos.y + pos.radius + 15);
+                                    ctx.fillText(tile.name, pos.x, pos.y + 4);
                                 }}
                             }});
                             
@@ -371,8 +401,7 @@ with tab1:
                                 
                                 // Redraw to highlight
                                 draw();
-                                ctx.beginPath();
-                                ctx.arc(hovered.x, hovered.y, hovered.radius + 4, 0, Math.PI * 2);
+                                drawHexShape(ctx, hovered.x, hovered.y, hovered.hexSize + 2);
                                 ctx.lineWidth = 2;
                                 ctx.strokeStyle = '#00e5ff';
                                 ctx.stroke();
