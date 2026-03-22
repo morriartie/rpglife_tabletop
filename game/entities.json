@@ -146,121 +146,156 @@
   },
   "300": {
     "NameComponent": {
-      "displayName": "City 1 (Template)"
+      "displayName": "Oakhaven"
     },
     "TileComponent": {
       "type": "CITY"
     },
     "CityComponent": {
-      "description": "A bustling city.",
+      "description": "A peaceful trading hub nestled amidst rolling emerald hills, known for its sprawling markets.",
       "level": 1,
       "biome": "GRASS_PATH"
     },
     "GraphNodeComponent": {
       "nextTileIds": [],
       "previousTileIds": []
+    },
+    "InventoryComponent": {
+      "heldEntityIds": [],
+      "maxWeightCapacity": 1000,
+      "currentWeight": 0
     }
   },
   "301": {
     "NameComponent": {
-      "displayName": "City 2 (Template)"
+      "displayName": "Dusty Crossing"
     },
     "TileComponent": {
       "type": "CITY"
     },
     "CityComponent": {
-      "description": "A bustling city.",
+      "description": "A rugged outpost situated at the crossroads of major trade routes, bustling with merchants and mercenaries.",
       "level": 1,
       "biome": "DIRT_PATH"
     },
     "GraphNodeComponent": {
       "nextTileIds": [],
       "previousTileIds": []
+    },
+    "InventoryComponent": {
+      "heldEntityIds": [],
+      "maxWeightCapacity": 1000,
+      "currentWeight": 0
     }
   },
   "302": {
     "NameComponent": {
-      "displayName": "City 3 (Template)"
+      "displayName": "Stoneforge"
     },
     "TileComponent": {
       "type": "CITY"
     },
     "CityComponent": {
-      "description": "A bustling city.",
+      "description": "A formidable dwarven city carved into the canyon walls, famous for its resilient architecture and skilled smiths.",
       "level": 1,
       "biome": "ROCK_PATH"
     },
     "GraphNodeComponent": {
       "nextTileIds": [],
       "previousTileIds": []
+    },
+    "InventoryComponent": {
+      "heldEntityIds": [],
+      "maxWeightCapacity": 1000,
+      "currentWeight": 0
     }
   },
   "303": {
     "NameComponent": {
-      "displayName": "City 4 (Template)"
+      "displayName": "Kingswall"
     },
     "TileComponent": {
       "type": "CITY"
     },
     "CityComponent": {
-      "description": "A bustling city.",
+      "description": "The shining capital, enclosed by high brick walls and teeming with nobles, guilds, and high intrigue.",
       "level": 1,
       "biome": "BRICK_PATH"
     },
     "GraphNodeComponent": {
       "nextTileIds": [],
       "previousTileIds": []
+    },
+    "InventoryComponent": {
+      "heldEntityIds": [],
+      "maxWeightCapacity": 1000,
+      "currentWeight": 0
     }
   },
   "304": {
     "NameComponent": {
-      "displayName": "City 5 (Template)"
+      "displayName": "Eldergrove"
     },
     "TileComponent": {
       "type": "CITY"
     },
     "CityComponent": {
-      "description": "A bustling city.",
+      "description": "An ancient elven settlement hidden deep under the canopy of massive trees, illuminated by glowing flora.",
       "level": 1,
       "biome": "FOREST"
     },
     "GraphNodeComponent": {
       "nextTileIds": [],
       "previousTileIds": []
+    },
+    "InventoryComponent": {
+      "heldEntityIds": [],
+      "maxWeightCapacity": 1000,
+      "currentWeight": 0
     }
   },
   "305": {
     "NameComponent": {
-      "displayName": "City 6 (Template)"
+      "displayName": "Riverend"
     },
     "TileComponent": {
       "type": "CITY"
     },
     "CityComponent": {
-      "description": "A bustling city.",
+      "description": "A bustling port city built on a network of docks and canals, thriving on fishing and maritime trade.",
       "level": 1,
       "biome": "LAKE"
     },
     "GraphNodeComponent": {
       "nextTileIds": [],
       "previousTileIds": []
+    },
+    "InventoryComponent": {
+      "heldEntityIds": [],
+      "maxWeightCapacity": 1000,
+      "currentWeight": 0
     }
   },
   "306": {
     "NameComponent": {
-      "displayName": "City 7 (Template)"
+      "displayName": "Greenridge"
     },
     "TileComponent": {
       "type": "CITY"
     },
     "CityComponent": {
-      "description": "A bustling city.",
+      "description": "A sprawling agricultural bastion, supplying the region with bountiful harvests from its terraced fields.",
       "level": 1,
       "biome": "GRASS_PATH"
     },
     "GraphNodeComponent": {
       "nextTileIds": [],
       "previousTileIds": []
+    },
+    "InventoryComponent": {
+      "heldEntityIds": [],
+      "maxWeightCapacity": 1000,
+      "currentWeight": 0
     }
   }
 }

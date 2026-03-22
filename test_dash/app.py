@@ -66,6 +66,29 @@ with tab1:
             if res.status_code == 200:
                 world_state = res.json().get("entities", {})
                 
+                game_state_entity = world_state.get("GameState", {})
+                global_turn = game_state_entity.get("global_turn", 1)
+                active_player_id = game_state_entity.get("active_player_id")
+                turn_phase = game_state_entity.get("turn_phase", "Unknown")
+                
+                active_player_name = "Unknown"
+                if active_player_id and str(active_player_id) in world_state:
+                    active_player_name = world_state[str(active_player_id)].get("NameComponent", {}).get("displayName", f"Player {active_player_id}")
+                
+                st.markdown(f"### ⚔️ Round {global_turn} | Active Player: **{active_player_name}**")
+                
+                phases = ["Movement", "Tile Resolution", "Combat", "Reward", "Punishment"]
+                if turn_phase not in phases:
+                    phases.append(turn_phase)
+                    
+                cols = st.columns(len(phases))
+                for i, p in enumerate(phases):
+                    with cols[i]:
+                        if p == turn_phase:
+                            st.markdown(f"<div style='text-align: center; padding: 10px; margin-bottom: 20px; background-color: #4CAF50; color: white; border-radius: 5px; font-weight: bold;'>{p}</div>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"<div style='text-align: center; padding: 10px; margin-bottom: 20px; background-color: #ffffff11; color: #888; border-radius: 5px;'>{p}</div>", unsafe_allow_html=True)
+                
                 players = []
                 cities = []
                 all_tiles = []
@@ -103,17 +126,82 @@ with tab1:
                 edges_data = []
                 tile_map = {t[0]: t[1] for t in all_tiles}
                 
+                # Group entities by their currentTileId
+                tile_contents = {}
+                for eid_str, comps in world_state.items():
+                    if "PositionComponent" in comps:
+                        tid = comps["PositionComponent"].get("currentTileId")
+                        if tid is not None:
+                            if tid not in tile_contents:
+                                tile_contents[tid] = []
+                            
+                            name = comps.get("NameComponent", {}).get("displayName", f"Entity {eid_str}")
+                            type_ = "Unknown"
+                            if "PlayerComponent" in comps:
+                                type_ = "Player"
+                            elif "MobComponent" in comps:
+                                type_ = "Mob"
+                            elif "ItemComponent" in comps:
+                                type_ = "Item"
+                            
+                            tile_contents[tid].append({
+                                "id": eid_str,
+                                "name": name,
+                                "type": type_
+                            })
+                
                 for eid, comps in all_tiles:
                     if "HexPositionComponent" in comps:
                         pos = comps.get("HexPositionComponent")
+                        
+                        desc = ""
+                        if "CityComponent" in comps:
+                            desc = comps["CityComponent"].get("description", "")
+                        elif "DescriptionComponent" in comps:
+                            desc = comps["DescriptionComponent"].get("description", "")
+                            
+                        encounters = []
+                        if "EncounterComponent" in comps:
+                            mob_id = comps["EncounterComponent"].get("mobEntityId")
+                            is_def = comps["EncounterComponent"].get("isDefeated", False)
+                            mob_name = "Unknown Mob"
+                            if mob_id and str(mob_id) in world_state:
+                                mob_name = world_state[str(mob_id)].get("NameComponent", {}).get("displayName", f"Mob {mob_id}")
+                            if not is_def:
+                                encounters.append({"id": mob_id, "name": mob_name})
+                                
+                        inventory = []
+                        if "InventoryComponent" in comps:
+                            held = comps["InventoryComponent"].get("heldEntityIds", [])
+                            for h_id in held:
+                                if str(h_id) in world_state:
+                                    i_name = world_state[str(h_id)].get("NameComponent", {}).get("displayName", f"Item {h_id}")
+                                    inventory.append({"id": h_id, "name": i_name})
+                                    
+                        entities_here = tile_contents.get(eid, [])
+                        for ent in entities_here:
+                            if ent["type"] == "Mob":
+                                if not any(str(e["id"]) == str(ent["id"]) for e in encounters):
+                                    encounters.append(ent)
+                            elif ent["type"] == "Item":
+                                if not any(str(i["id"]) == str(ent["id"]) for i in inventory):
+                                    inventory.append(ent)
+                        
+                        players_on_tile = [ent for ent in entities_here if ent["type"] == "Player"]
+
                         nodes_data.append({
                             "id": eid,
                             "name": comps.get("NameComponent", {}).get("displayName", f"Tile {eid}"),
                             "type": comps.get("TileComponent", {}).get("type", "UNKNOWN"),
+                            "description": desc,
                             "q": pos.get("q", 0),
                             "r": pos.get("r", 0),
                             "x": pos.get("x", 0),
-                            "y": pos.get("y", 0)
+                            "y": pos.get("y", 0),
+                            "encounters": encounters,
+                            "inventory": inventory,
+                            "players": players_on_tile,
+                            "raw_comps": comps
                         })
 
                 # Generate HTML visualization
@@ -141,6 +229,33 @@ with tab1:
                 </head>
                 <body>
                     <div id="tooltip"></div>
+                    <div id="sidePanel" style="position: absolute; right: 0; top: 0; width: 320px; height: 100%; background: #2a2a3f; border-left: 2px solid #555; padding: 20px; box-sizing: border-box; display: none; overflow-y: auto; z-index: 5; box-shadow: -4px 0 10px rgba(0,0,0,0.5);">
+                        <h2 id="spName" style="margin-top: 0; color: #fff; margin-bottom: 5px;">Tile Name</h2>
+                        <span id="spType" style="color: #aaa; font-size: 13px; display: block; margin-bottom: 15px; font-weight: bold; text-transform: uppercase;">Type</span>
+                        <p id="spDesc" style="font-size: 14px; line-height: 1.5; color: #ddd; margin-bottom: 20px;"></p>
+                        
+                        <div id="spPlayersContainer" style="margin-top: 15px;">
+                            <h3 style="font-size: 16px; border-bottom: 1px solid #555; padding-bottom: 5px; color: #00e5ff;">Players</h3>
+                            <ul id="spPlayers" style="list-style-type: none; padding-left: 0; margin: 0; font-size: 14px;"></ul>
+                        </div>
+                        
+                        <div id="spInventoryContainer" style="margin-top: 15px;">
+                            <h3 style="font-size: 16px; border-bottom: 1px solid #555; padding-bottom: 5px; color: #a1b56c;">Items / Inventory</h3>
+                            <ul id="spInventory" style="list-style-type: none; padding-left: 0; margin: 0; font-size: 14px;"></ul>
+                        </div>
+                        
+                        <div id="spEncountersContainer" style="margin-top: 15px;">
+                            <h3 style="font-size: 16px; border-bottom: 1px solid #555; padding-bottom: 5px; color: #ff5252;">Encounters</h3>
+                            <ul id="spEncounters" style="list-style-type: none; padding-left: 0; margin: 0; font-size: 14px;"></ul>
+                        </div>
+                        
+                        <div id="spRawContainer" style="margin-top: 15px;">
+                            <h3 style="font-size: 16px; border-bottom: 1px solid #555; padding-bottom: 5px; color: #f0c674;">Raw Data</h3>
+                            <pre id="spRaw" style="font-size: 11px; background: #1e1e2f; padding: 10px; border-radius: 4px; overflow-x: auto; color: #bbb;"></pre>
+                        </div>
+                        
+                        <button id="spClose" style="margin-top: 25px; width: 100%; padding: 10px; background: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;">Close Panel</button>
+                    </div>
                     <canvas id="gameCanvas"></canvas>
                     <script>
                         const API_URL = "{API_URL}";
@@ -155,6 +270,71 @@ with tab1:
                         const canvas = document.getElementById('gameCanvas');
                         const ctx = canvas.getContext('2d');
                         const tooltip = document.getElementById('tooltip');
+                        
+                        const sidePanel = document.getElementById('sidePanel');
+                        const spName = document.getElementById('spName');
+                        const spType = document.getElementById('spType');
+                        const spDesc = document.getElementById('spDesc');
+                        const spPlayers = document.getElementById('spPlayers');
+                        const spInventory = document.getElementById('spInventory');
+                        const spEncounters = document.getElementById('spEncounters');
+                        const spRaw = document.getElementById('spRaw');
+                        const spClose = document.getElementById('spClose');
+                        
+                        let selectedTileId = null;
+                        
+                        spClose.addEventListener('click', () => {{
+                            sidePanel.style.display = 'none';
+                            selectedTileId = null;
+                            draw();
+                        }});
+                        
+                        function showSidePanel(tile) {{
+                            sidePanel.style.display = 'block';
+                            spName.innerText = tile.name;
+                            spType.innerText = tile.type;
+                            spDesc.innerText = tile.description || "No description available.";
+                            
+                            spPlayers.innerHTML = '';
+                            if (tile.players && tile.players.length > 0) {{
+                                tile.players.forEach(p => {{
+                                    const li = document.createElement('li');
+                                    li.style.padding = "2px 0";
+                                    li.innerText = `👤 ${{p.name}}`;
+                                    spPlayers.appendChild(li);
+                                }});
+                            }} else {{
+                                spPlayers.innerHTML = '<li style="color: #888;">None</li>';
+                            }}
+                            
+                            spInventory.innerHTML = '';
+                            if (tile.inventory && tile.inventory.length > 0) {{
+                                tile.inventory.forEach(i => {{
+                                    const li = document.createElement('li');
+                                    li.style.padding = "2px 0";
+                                    li.innerText = `📦 ${{i.name}}`;
+                                    spInventory.appendChild(li);
+                                }});
+                            }} else {{
+                                spInventory.innerHTML = '<li style="color: #888;">None</li>';
+                            }}
+                            
+                            spEncounters.innerHTML = '';
+                            if (tile.encounters && tile.encounters.length > 0) {{
+                                tile.encounters.forEach(e => {{
+                                    const li = document.createElement('li');
+                                    li.style.padding = "2px 0";
+                                    li.innerText = `🐺 ${{e.name}}`;
+                                    spEncounters.appendChild(li);
+                                }});
+                            }} else {{
+                                spEncounters.innerHTML = '<li style="color: #888;">None</li>';
+                            }}
+                            
+                            const compsCopy = Object.assign({{}}, tile.raw_comps);
+                            spRaw.innerText = JSON.stringify(compsCopy, null, 2);
+                        }}
+
                         
                         let width = window.innerWidth;
                         let height = 600;
@@ -265,6 +445,12 @@ with tab1:
                                 ctx.strokeStyle = tile.type === 'CITY' ? '#ff8f00' : '#222';
                                 ctx.stroke();
                                 
+                                if (selectedTileId === tile.id) {{
+                                    ctx.lineWidth = 3;
+                                    ctx.strokeStyle = '#fff';
+                                    ctx.stroke();
+                                }}
+                                
                                 // Node label if city
                                 if (tile.type === 'CITY') {{
                                     ctx.fillStyle = '#000';
@@ -368,12 +554,20 @@ with tab1:
                             }}
                             
                             if (clicked) {{
+                                selectedTileId = clicked.tile.id;
+                                showSidePanel(clicked.tile);
+                                draw();
+                                
                                 if (isPreviewing && currentPath.length > 0 && currentPath[currentPath.length - 1] === clicked.tile.id) {{
                                     // Confirm move if clicked target again
                                     executeMove();
                                 }} else {{
                                     previewPath(clicked.tile.id);
                                 }}
+                            }} else {{
+                                selectedTileId = null;
+                                sidePanel.style.display = 'none';
+                                draw();
                             }}
                         }});
 

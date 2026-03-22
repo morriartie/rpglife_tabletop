@@ -46,6 +46,7 @@ class GameSetupSystem:
         
         # 3. Get City Templates
         city_templates = registry.get_templates_by_component("CityComponent")
+        base_templates = list(city_templates.values())
         available_city_templates = list(city_templates.values())
         random.shuffle(available_city_templates)
 
@@ -60,20 +61,24 @@ class GameSetupSystem:
                 city_template = available_city_templates.pop(0)
                 import copy
                 new_city = copy.deepcopy(city_template)
-                new_city["HexPositionComponent"] = {"q": q, "r": r, "x": round(x), "y": round(y)}
-                if i == 0:
-                    new_city["CityComponent"]["isCapital"] = True
-                city_id = world.create_entity(new_city)
+            elif base_templates:
+                city_template = random.choice(base_templates)
+                import copy
+                new_city = copy.deepcopy(city_template)
+                new_city["NameComponent"]["displayName"] = f"City {i+1}"
             else:
-                city_data = {
+                new_city = {
                     "NameComponent": {"displayName": f"City {i+1}"},
                     "TileComponent": {"type": "CITY"},
-                    "CityComponent": {"description": "A newly founded settlement.", "level": 1, "biome": "DIRT_PATH"},
-                    "HexPositionComponent": {"q": q, "r": r, "x": round(x), "y": round(y)}
+                    "CityComponent": {"description": "A newly founded settlement.", "level": 1, "biome": "DIRT_PATH"}
                 }
-                if i == 0:
-                    city_data["CityComponent"]["isCapital"] = True
-                city_id = world.create_entity(city_data)
+                
+            new_city["HexPositionComponent"] = {"q": q, "r": r, "x": round(x), "y": round(y)}
+            if i == 0:
+                if "CityComponent" not in new_city:
+                    new_city["CityComponent"] = {}
+                new_city["CityComponent"]["isCapital"] = True
+            city_id = world.create_entity(new_city)
                 
             city_ids.append(city_id)
             hex_to_entity[(q, r)] = city_id

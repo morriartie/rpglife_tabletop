@@ -27,7 +27,10 @@ class World:
         self.entities["GameState"] = {
             "global_turn": 1,
             "phase": "EXPLORATION",
-            "turn_limit": 20
+            "turn_limit": 20,
+            "turn_order": [],
+            "active_player_id": None,
+            "turn_phase": "Movement"
         }
 
     def create_entity(self, components):
@@ -363,11 +366,22 @@ class TurnSystem:
         if state["phase"] == "GAME_OVER":
             return "Game is over."
             
-        state["global_turn"] += 1
-        
-        if state["phase"] == "EXPLORATION" and state["global_turn"] >= state["turn_limit"]:
-            TurnSystem._trigger_final_hour(world, state)
-            return "The Final Hour has begun!"
+        if "turn_order" in state and state["turn_order"] and "active_player_id" in state:
+            idx = state["turn_order"].index(state["active_player_id"])
+            idx = (idx + 1) % len(state["turn_order"])
+            state["active_player_id"] = state["turn_order"][idx]
+            state["turn_phase"] = "Movement"
+            
+            if idx == 0:
+                state["global_turn"] += 1
+                if state["phase"] == "EXPLORATION" and state["global_turn"] >= state["turn_limit"]:
+                    TurnSystem._trigger_final_hour(world, state)
+                    return "The Final Hour has begun!"
+        else:
+            state["global_turn"] += 1
+            if state["phase"] == "EXPLORATION" and state["global_turn"] >= state["turn_limit"]:
+                TurnSystem._trigger_final_hour(world, state)
+                return "The Final Hour has begun!"
             
         return f"Advanced to Turn {state['global_turn']}"
 

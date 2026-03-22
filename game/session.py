@@ -25,11 +25,16 @@ class SessionManager:
             
         base_player_template = list(player_templates.values())[0]
         
+        player_ids = []
         for i in range(player_count):
             new_player = copy.deepcopy(base_player_template)
             new_player["NameComponent"]["displayName"] = f"Hero {i+1}"
             pid = world.create_entity(new_player)
             GameSetupSystem.assign_player_start(world, pid, world.start_cities_pool)
+            player_ids.append(pid)
+            
+        world.entities["GameState"]["turn_order"] = player_ids
+        world.entities["GameState"]["active_player_id"] = player_ids[0]
             
         self.sessions[game_id] = world
         return game_id
