@@ -26,8 +26,12 @@
     "currentTileId": "number"
   },
   "EncounterComponent": {
+    "type": "enum(BATTLE, TRAP, EVENT, NONE)",
+    "referenceEntityId": "number",
     "mobEntityId": "number",
-    "isDefeated": "boolean"
+    "isDefeated": "boolean",
+    "ambushChance": "number",
+    "spawnChance": "number"
   },
   "MobComponent": {
     "type": "enum(WOLF, BAT, GOBLIN, SOLDIER, THIEF, SKELETON)"

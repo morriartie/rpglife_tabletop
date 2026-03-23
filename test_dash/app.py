@@ -229,40 +229,23 @@ with tab1:
                 </head>
                 <body>
                     <div id="tooltip"></div>
-                    <div id="sidePanel" style="position: absolute; right: 0; top: 0; width: 320px; height: 100%; background: #2a2a3f; border-left: 2px solid #555; padding: 20px; box-sizing: border-box; display: none; overflow-y: auto; z-index: 5; box-shadow: -4px 0 10px rgba(0,0,0,0.5);">
-                        <h2 id="spName" style="margin-top: 0; color: #fff; margin-bottom: 5px;">Tile Name</h2>
-                        <span id="spType" style="color: #aaa; font-size: 13px; display: block; margin-bottom: 15px; font-weight: bold; text-transform: uppercase;">Type</span>
-                        <p id="spDesc" style="font-size: 14px; line-height: 1.5; color: #ddd; margin-bottom: 20px;"></p>
+                    <div id="sidePanel" style="position: absolute; right: 0; top: 0; width: 350px; height: 100%; background: #2a2a3f; border-left: 2px solid #555; padding: 20px; box-sizing: border-box; display: none; overflow-y: auto; z-index: 5; box-shadow: -4px 0 10px rgba(0,0,0,0.5);">
+                        <div id="spBreadcrumbs" style="margin-bottom: 15px; font-size: 12px; color: #888; overflow-wrap: break-word;"></div>
+                        <h2 id="spName" style="margin-top: 0; color: #fff; margin-bottom: 5px;">Entity Name</h2>
+                        <span id="spType" style="color: #00e5ff; font-size: 13px; display: block; margin-bottom: 15px; font-weight: bold; text-transform: uppercase;">Type</span>
                         
-                        <div id="spPlayersContainer" style="margin-top: 15px;">
-                            <h3 style="font-size: 16px; border-bottom: 1px solid #555; padding-bottom: 5px; color: #00e5ff;">Players</h3>
-                            <ul id="spPlayers" style="list-style-type: none; padding-left: 0; margin: 0; font-size: 14px;"></ul>
-                        </div>
-                        
-                        <div id="spInventoryContainer" style="margin-top: 15px;">
-                            <h3 style="font-size: 16px; border-bottom: 1px solid #555; padding-bottom: 5px; color: #a1b56c;">Items / Inventory</h3>
-                            <ul id="spInventory" style="list-style-type: none; padding-left: 0; margin: 0; font-size: 14px;"></ul>
-                        </div>
-                        
-                        <div id="spEncountersContainer" style="margin-top: 15px;">
-                            <h3 style="font-size: 16px; border-bottom: 1px solid #555; padding-bottom: 5px; color: #ff5252;">Encounters</h3>
-                            <ul id="spEncounters" style="list-style-type: none; padding-left: 0; margin: 0; font-size: 14px;"></ul>
-                        </div>
-                        
-                        <div id="spRawContainer" style="margin-top: 15px;">
-                            <h3 style="font-size: 16px; border-bottom: 1px solid #555; padding-bottom: 5px; color: #f0c674;">Raw Data</h3>
-                            <pre id="spRaw" style="font-size: 11px; background: #1e1e2f; padding: 10px; border-radius: 4px; overflow-x: auto; color: #bbb;"></pre>
-                        </div>
+                        <div id="spContent"></div>
                         
                         <button id="spClose" style="margin-top: 25px; width: 100%; padding: 10px; background: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;">Close Panel</button>
                     </div>
                     <canvas id="gameCanvas"></canvas>
                     <script>
-                        const API_URL = "{API_URL}";
+                        const PUBLIC_API_URL = `http://${{window.location.hostname}}:8001`;
                         const GAME_ID = "{st.session_state.selected_game}";
                         const nodes = {json.dumps(nodes_data)};
                         const edges = {json.dumps(edges_data)};
                         const players = {json.dumps(players_data)};
+                        const allEntities = {json.dumps(world_state)};
                         
                         // Find a player that belongs to this session (just take the first one for testing)
                         const PLAYER_ID = players.length > 0 ? players[0].id : null;
@@ -272,67 +255,170 @@ with tab1:
                         const tooltip = document.getElementById('tooltip');
                         
                         const sidePanel = document.getElementById('sidePanel');
+                        const spBreadcrumbs = document.getElementById('spBreadcrumbs');
                         const spName = document.getElementById('spName');
                         const spType = document.getElementById('spType');
-                        const spDesc = document.getElementById('spDesc');
-                        const spPlayers = document.getElementById('spPlayers');
-                        const spInventory = document.getElementById('spInventory');
-                        const spEncounters = document.getElementById('spEncounters');
-                        const spRaw = document.getElementById('spRaw');
+                        const spContent = document.getElementById('spContent');
                         const spClose = document.getElementById('spClose');
                         
                         let selectedTileId = null;
+                        let inspectionStack = [];
                         
                         spClose.addEventListener('click', () => {{
                             sidePanel.style.display = 'none';
                             selectedTileId = null;
+                            inspectionStack = [];
                             draw();
                         }});
                         
-                        function showSidePanel(tile) {{
+                        function getEntityName(eid) {{
+                            const ent = allEntities[eid];
+                            if (!ent) return `Unknown Entity ${{eid}}`;
+                            return ent.NameComponent?.displayName || `Entity ${{eid}}`;
+                        }}
+                        
+                        window.pushInspect = function(eid) {{
+                            inspectionStack.push(eid.toString());
+                            renderInspector();
+                        }};
+                        
+                        window.inspectType = async function(typeVal) {{
+                            const pseudoId = 'TPL_' + typeVal;
+                            
+                            if (allEntities[pseudoId]) {{
+                                pushInspect(pseudoId);
+                                return;
+                            }}
+                            
+                            try {{
+                                const res = await fetch(PUBLIC_API_URL + '/template/' + typeVal);
+                                if (res.ok) {{
+                                    const data = await res.json();
+                                    allEntities[pseudoId] = data.template;
+                                    
+                                    if (!allEntities[pseudoId].NameComponent) {{
+                                        allEntities[pseudoId].NameComponent = {{ displayName: typeVal + ' (Template)' }};
+                                    }}
+                                    
+                                    pushInspect(pseudoId);
+                                }} else {{
+                                    alert('No detailed template data available for type: ' + typeVal);
+                                }}
+                            }} catch (e) {{
+                                console.error(e);
+                                alert('Failed to fetch template data for type: ' + typeVal);
+                            }}
+                        }};
+                        
+                        window.popToInspect = function(idx) {{
+                            inspectionStack = inspectionStack.slice(0, idx + 1);
+                            renderInspector();
+                        }};
+                        
+                        function renderInspector() {{
+                            if (inspectionStack.length === 0) {{
+                                sidePanel.style.display = 'none';
+                                return;
+                            }}
                             sidePanel.style.display = 'block';
-                            spName.innerText = tile.name;
-                            spType.innerText = tile.type;
-                            spDesc.innerText = tile.description || "No description available.";
                             
-                            spPlayers.innerHTML = '';
-                            if (tile.players && tile.players.length > 0) {{
-                                tile.players.forEach(p => {{
-                                    const li = document.createElement('li');
-                                    li.style.padding = "2px 0";
-                                    li.innerText = `👤 ${{p.name}}`;
-                                    spPlayers.appendChild(li);
-                                }});
-                            }} else {{
-                                spPlayers.innerHTML = '<li style="color: #888;">None</li>';
+                            const currentId = inspectionStack[inspectionStack.length - 1];
+                            const entity = allEntities[currentId];
+                            
+                            // Render Breadcrumbs
+                            let breadcrumbsHtml = '';
+                            for (let i = 0; i < inspectionStack.length; i++) {{
+                                const id = inspectionStack[i];
+                                const maxLen = 15;
+                                let name = getEntityName(id);
+                                if (name.length > maxLen) name = name.substring(0, maxLen) + '...';
+                                
+                                if (i === inspectionStack.length - 1) {{
+                                    breadcrumbsHtml += `<span style="color: #fff;">${{name}}</span>`;
+                                }} else {{
+                                    breadcrumbsHtml += `<a href="#" onclick="event.preventDefault(); popToInspect(${{i}})" style="color: #00e5ff; text-decoration: none;">${{name}}</a> &gt; `;
+                                }}
+                            }}
+                            spBreadcrumbs.innerHTML = breadcrumbsHtml;
+                            
+                            if (!entity) {{
+                                spName.innerText = "Entity Not Found";
+                                spType.innerText = "ERROR";
+                                spContent.innerHTML = `<p style="color: red;">Entity ID ${{currentId}} does not exist in world state.</p>`;
+                                return;
                             }}
                             
-                            spInventory.innerHTML = '';
-                            if (tile.inventory && tile.inventory.length > 0) {{
-                                tile.inventory.forEach(i => {{
-                                    const li = document.createElement('li');
-                                    li.style.padding = "2px 0";
-                                    li.innerText = `📦 ${{i.name}}`;
-                                    spInventory.appendChild(li);
-                                }});
-                            }} else {{
-                                spInventory.innerHTML = '<li style="color: #888;">None</li>';
+                            spName.innerText = getEntityName(currentId);
+                            // Determine a loose "Type" by finding the main component
+                            let typeStr = Object.keys(entity).find(k => k.endsWith('Component') && k !== 'NameComponent' && k !== 'PositionComponent') || 'Entity';
+                            spType.innerText = typeStr.replace('Component', '');
+                            
+                            let contentHtml = '';
+                            
+                            // 1. Entities physically "here" (on this tile or in this container)
+                            const entitiesHere = [];
+                            for (const [eid, comps] of Object.entries(allEntities)) {{
+                                if (eid === currentId) continue;
+                                if (comps.PositionComponent?.currentTileId == currentId) {{
+                                    entitiesHere.push(eid);
+                                }}
                             }}
                             
-                            spEncounters.innerHTML = '';
-                            if (tile.encounters && tile.encounters.length > 0) {{
-                                tile.encounters.forEach(e => {{
-                                    const li = document.createElement('li');
-                                    li.style.padding = "2px 0";
-                                    li.innerText = `🐺 ${{e.name}}`;
-                                    spEncounters.appendChild(li);
-                                }});
-                            }} else {{
-                                spEncounters.innerHTML = '<li style="color: #888;">None</li>';
+                            if (entitiesHere.length > 0) {{
+                                contentHtml += `<div style="margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 10px;">`;
+                                contentHtml += `<h3 style="font-size: 14px; color: #a1b56c; margin-top: 0;">Entities Here</h3>`;
+                                contentHtml += `<ul style="list-style: none; padding: 0; margin: 0; font-size: 13px;">`;
+                                for (const eid of entitiesHere) {{
+                                    const typeIcon = allEntities[eid]?.PlayerComponent ? '👤' : (allEntities[eid]?.MobComponent ? '🐺' : '📦');
+                                    contentHtml += `<li style="margin-bottom: 4px;">${{typeIcon}} <a href="#" onclick="event.preventDefault(); pushInspect('${{eid}}')" style="color: #ffd700; text-decoration: none;">${{getEntityName(eid)}}</a></li>`;
+                                }}
+                                contentHtml += `</ul></div>`;
                             }}
                             
-                            const compsCopy = Object.assign({{}}, tile.raw_comps);
-                            spRaw.innerText = JSON.stringify(compsCopy, null, 2);
+                            // 2. Generic Component Rendering
+                            for (const [compName, compData] of Object.entries(entity)) {{
+                                contentHtml += `<div style="margin-bottom: 15px; background: #1e1e2f; padding: 10px; border-radius: 4px;">`;
+                                contentHtml += `<h4 style="margin: 0 0 8px 0; font-size: 13px; color: #e1b2ff;">${{compName}}</h4>`;
+                                
+                                if (Object.keys(compData).length === 0) {{
+                                    contentHtml += `<span style="font-size: 12px; color: #888;">(No properties)</span>`;
+                                }} else {{
+                                    contentHtml += `<table style="width: 100%; font-size: 12px; border-collapse: collapse;">`;
+                                    for (const [key, val] of Object.entries(compData)) {{
+                                        contentHtml += `<tr><td style="color: #999; padding: 2px 5px 2px 0; max-width: 120px; overflow: hidden; text-overflow: ellipsis;">${{key}}</td><td style="color: #fff; padding: 2px 0; word-break: break-all;">`;
+                                        
+                                        const isEntityId = key.endsWith('EntityId');
+                                        const isEntityIds = key.endsWith('EntityIds');
+                                        const isTypeString = key === 'type' || key === 'itemType' || key === 'mobType' || key === 'biome';
+                                        
+                                        if (isEntityId && val) {{
+                                            contentHtml += `<a href="#" onclick="event.preventDefault(); pushInspect('${{val}}')" style="color: #ffd700; text-decoration: none; font-weight: bold;">[🔗 ${{getEntityName(val)}}]</a>`;
+                                        }} else if (isEntityIds && Array.isArray(val)) {{
+                                            if (val.length === 0) {{
+                                                contentHtml += `[]`;
+                                            }} else {{
+                                                contentHtml += val.map(v => `<a href="#" onclick="event.preventDefault(); pushInspect('${{v}}')" style="color: #ffd700; text-decoration: none; font-weight: bold;">[🔗 ${{getEntityName(v)}}]</a>`).join(', ');
+                                            }}
+                                        }} else if (isTypeString && typeof val === 'string') {{
+                                            contentHtml += `<a href="#" onclick="event.preventDefault(); inspectType('${{val}}')" style="color: #ff9800; text-decoration: none; font-weight: bold;">[📜 ${{val}}]</a>`;
+                                        }} else if (typeof val === 'object' && val !== null) {{
+                                            contentHtml += `<pre style="margin: 0; font-size: 11px; color: #aaa;">${{JSON.stringify(val, null, 2)}}</pre>`;
+                                        }} else {{
+                                            contentHtml += val;
+                                        }}
+                                        contentHtml += `</td></tr>`;
+                                    }}
+                                    contentHtml += `</table>`;
+                                }}
+                                contentHtml += `</div>`;
+                            }}
+                            
+                            spContent.innerHTML = contentHtml;
+                        }}
+                        
+                        function showSidePanel(tile) {{
+                            inspectionStack = [tile.id.toString()];
+                            renderInspector();
                         }}
 
                         
@@ -496,7 +582,7 @@ with tab1:
                             if (!PLAYER_ID) return;
                             
                             try {{
-                                const res = await fetch(`${{API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/preview_move`, {{
+                                const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/preview_move`, {{
                                     method: 'POST',
                                     headers: {{ 'Content-Type': 'application/json' }},
                                     body: JSON.stringify({{
@@ -520,7 +606,7 @@ with tab1:
                             if (!PLAYER_ID || !isPreviewing || currentPath.length === 0) return;
                             
                             try {{
-                                const res = await fetch(`${{API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/move_choice`, {{
+                                const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/move_choice`, {{
                                     method: 'POST',
                                     headers: {{ 'Content-Type': 'application/json' }},
                                     body: JSON.stringify({{

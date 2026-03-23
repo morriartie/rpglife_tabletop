@@ -180,7 +180,7 @@ class MovementSystem:
             
             # Stop early if there's an active encounter
             encounter = world.get_component(tile_id, "EncounterComponent")
-            if encounter and not encounter["isDefeated"]:
+            if encounter and "mobEntityId" in encounter and not encounter.get("isDefeated", False):
                 break
                 
         print(f"Player {player_entity_id} moved to Tile {final_tile}")
@@ -195,11 +195,30 @@ class EncounterSystem:
     def check_encounter(world, player_entity_id, tile_entity_id):
         """Checks if landing on a tile triggers a battle."""
         encounter = world.get_component(tile_entity_id, "EncounterComponent")
-        
-        if encounter and not encounter["isDefeated"]:
+        if not encounter:
+            return
+            
+        if "mobEntityId" in encounter and not encounter.get("isDefeated", False):
             mob_id = encounter["mobEntityId"]
             print(f"Encounter triggered! Player {player_entity_id} vs Mob {mob_id}")
             CombatSystem.start_combat(world, player_entity_id, mob_id)
+        else:
+            # Chance for a random ambush when stopping on a tile
+            ambush_chance = encounter.get("ambushChance", 0.0)
+            if random.random() < ambush_chance:
+                mob_types = ["WOLF", "BAT", "GOBLIN", "SOLDIER", "THIEF", "SKELETON"]
+                mob_type = random.choice(mob_types)
+                mob_id = world.create_entity({
+                    "NameComponent": {"displayName": f"Ambushing {mob_type}"},
+                    "MobComponent": {"type": mob_type},
+                    "StatsComponent": {"maxHp": 10, "currentHp": 10, "baseAttack": 3, "baseDefense": 1},
+                    "LootDropComponent": {"lootTable": [{"itemType": "COPPER_RING", "dropChanceProbability": 0.5}]}
+                })
+                # Update the encounter component
+                encounter["mobEntityId"] = mob_id
+                encounter["isDefeated"] = False
+                print(f"Ambush triggered! Player {player_entity_id} vs Mob {mob_id}")
+                CombatSystem.start_combat(world, player_entity_id, mob_id)
 
 
 class PickupSystem:

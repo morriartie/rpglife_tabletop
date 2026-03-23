@@ -22,6 +22,14 @@ class GameSetupSystem:
         """Generates a hexagonal game board."""
         city_count = GameSetupSystem.calculate_city_count(player_count)
         
+        # Load Global Configs
+        config = registry.get_template(0)
+        default_spawn_chance = 0.15
+        default_ambush_chance = 0.15
+        if config and "EncounterComponent" in config:
+            default_spawn_chance = config["EncounterComponent"].get("spawnChance", 0.15)
+            default_ambush_chance = config["EncounterComponent"].get("ambushChance", 0.15)
+            
         # Grid parameters
         map_radius = max(5, int(math.sqrt(city_count) * 3)) # Scale map size with cities
         hex_size = 30 # For rendering calculation
@@ -49,6 +57,15 @@ class GameSetupSystem:
         base_templates = list(city_templates.values())
         available_city_templates = list(city_templates.values())
         random.shuffle(available_city_templates)
+
+        all_tile_templates = registry.get_templates_by_component("TileComponent")
+        biome_templates = {}
+        for t_id, t_data in all_tile_templates.items():
+            if "CityComponent" not in t_data:
+                bt = t_data["TileComponent"].get("type", "DIRT_PATH")
+                if bt not in biome_templates:
+                    biome_templates[bt] = []
+                biome_templates[bt].append(t_data)
 
         city_ids = []
         hex_to_entity = {}
@@ -105,27 +122,37 @@ class GameSetupSystem:
                     closest_dist = dist
                     closest_biome = cb
             
-            # Create standard tile
-            tile_id = world.create_entity({
-                "NameComponent": {"displayName": f"Hex {q},{r}"},
-                "TileComponent": {"type": closest_biome},
-                "HexPositionComponent": {"q": q, "r": r, "x": round(x), "y": round(y)}
-            })
+            # Create standard tile using templates if available
+            if closest_biome in biome_templates and biome_templates[closest_biome]:
+                import copy
+                tile_template = random.choice(biome_templates[closest_biome])
+                new_tile = copy.deepcopy(tile_template)
+                orig_name = new_tile.get("NameComponent", {}).get("displayName", "Hex")
+                new_tile["NameComponent"] = {"displayName": f"{orig_name} ({q},{r})"}
+                new_tile["HexPositionComponent"] = {"q": q, "r": r, "x": round(x), "y": round(y)}
+            else:
+                new_tile = {
+                    "NameComponent": {"displayName": f"Hex {q},{r}"},
+                    "TileComponent": {"type": closest_biome},
+                    "HexPositionComponent": {"q": q, "r": r, "x": round(x), "y": round(y)}
+                }
+
+            tile_id = world.create_entity(new_tile)
             hex_to_entity[(q, r)] = tile_id
             
-            # Chance for encounter
-            if random.random() < 0.15:
-                mob_types = ["WOLF", "BAT", "GOBLIN", "SOLDIER", "THIEF", "SKELETON"]
-                mob_id = world.create_entity({
-                    "NameComponent": {"displayName": f"Wild {random.choice(mob_types)}"},
-                    "MobComponent": {"type": random.choice(mob_types)},
-                    "StatsComponent": {"maxHp": 10, "currentHp": 10, "baseAttack": 3, "baseDefense": 1},
-                    "LootDropComponent": {"lootTable": [{"itemType": "COPPER_RING", "dropChanceProbability": 0.5}]}
-                })
-                world.entities[tile_id]["EncounterComponent"] = {
-                    "mobEntityId": mob_id,
-                    "isDefeated": False
-                }
+            # Encounter Template Resolution
+            enc_comp = world.entities[tile_id].get("EncounterComponent")
+            if enc_comp and enc_comp.get("type") == "BATTLE":
+                ref_id = enc_comp.get("referenceEntityId")
+                if ref_id is not None:
+                    # Fetch mob template
+                    mob_template = registry.get_template(ref_id)
+                    if mob_template:
+                        import copy
+                        new_mob = copy.deepcopy(mob_template)
+                        new_mob["PositionComponent"] = {"currentTileId": tile_id}
+                        mob_id = world.create_entity(new_mob)
+                        world.entities[tile_id]["EncounterComponent"]["mobEntityId"] = mob_id
 
         # Return a shuffled list of city IDs so clients can pop from it
         start_cities_pool = city_ids.copy()

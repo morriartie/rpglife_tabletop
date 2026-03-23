@@ -64,6 +64,15 @@ def get_entity_state(game_id: str = Path(...), entity_id: int = Path(..., descri
         raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
     return {"entity_id": entity_id, "components": game_world.entities[entity_id]}
 
+@router.get("/template/{type_name}")
+def get_template(type_name: str = Path(...)):
+    """Retrieve template details by its type string (e.g. WOLF_PELT)."""
+    for template in session_manager.registry.templates.values():
+        for comp_name, comp_data in template.items():
+            if isinstance(comp_data, dict) and comp_data.get("type") == type_name:
+                return {"status": "success", "template": template}
+    raise HTTPException(status_code=404, detail=f"Template with type {type_name} not found")
+
 @router.post("/game/{game_id}/player/{player_id}/roll_movement")
 def roll_movement(game_id: str = Path(...), player_id: int = Path(...)):
     """Roll 2d6 for movement phase."""

@@ -2,10 +2,7 @@ import pytest
 from game.systems import World, CombatSystem
 
 def test_combat_fifo_and_initiative(tmp_path):
-    d = tmp_path / "entities.json"
-    d.write_text("{}")
-    
-    world = World(str(d))
+    world = World()
     
     p1 = world.create_entity({
         "StatsComponent": {"maxHp": 20, "currentHp": 20, "baseAttack": 5, "baseDefense": 2}
@@ -38,10 +35,7 @@ def test_combat_fifo_and_initiative(tmp_path):
     assert "Initiative" in world.entities[p1]["DicePoolComponent"]["diceQueue"][0]["keywords"]
 
 def test_combat_single_use(tmp_path):
-    d = tmp_path / "entities.json"
-    d.write_text("{}")
-    
-    world = World(str(d))
+    world = World()
     
     p1 = world.create_entity({
         "StatsComponent": {"maxHp": 20, "currentHp": 20, "baseAttack": 5, "baseDefense": 2}

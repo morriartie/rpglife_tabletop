@@ -1,4 +1,13 @@
 {
+  "0": {
+    "NameComponent": {
+      "displayName": "GlobalConfig"
+    },
+    "EncounterComponent": {
+      "spawnChance": 0.15,
+      "ambushChance": 0.15
+    }
+  },
   "1": {
     "SessionComponent": {
       "sessionId": "session_88"
@@ -33,8 +42,53 @@
       ]
     },
     "EncounterComponent": {
-      "mobEntityId": 100,
+      "type": "BATTLE",
+      "referenceEntityId": 100,
       "isDefeated": false
+    }
+  },
+  "11": {
+    "NameComponent": {
+      "displayName": "Peaceful Forest"
+    },
+    "TileComponent": {
+      "type": "FOREST"
+    }
+  },
+  "12": {
+    "NameComponent": {
+      "displayName": "Wolf Den"
+    },
+    "TileComponent": {
+      "type": "FOREST"
+    },
+    "EncounterComponent": {
+      "type": "BATTLE",
+      "referenceEntityId": 100,
+      "isDefeated": false,
+      "ambushChance": 0.25
+    }
+  },
+  "13": {
+    "NameComponent": {
+      "displayName": "Bandit Camp"
+    },
+    "TileComponent": {
+      "type": "DIRT_PATH"
+    },
+    "EncounterComponent": {
+      "type": "BATTLE",
+      "referenceEntityId": 201,
+      "isDefeated": false,
+      "ambushChance": 0.3
+    }
+  },
+  "14": {
+    "NameComponent": {
+      "displayName": "Empty Dirt Path"
+    },
+    "TileComponent": {
+      "type": "DIRT_PATH"
     }
   },
   "50": {

@@ -1,5 +1,5 @@
 import pytest
-from game.systems import World
+from game.systems import World, TemplateRegistry
 from game.map_builder import GameSetupSystem
 
 def test_city_count_calculation():
@@ -15,8 +15,9 @@ def test_map_generation(tmp_path):
     d = tmp_path / "entities.json"
     d.write_text("{}")
     
-    world = World(str(d))
-    city_ids, pool = GameSetupSystem.generate_map(world, 4)
+    world = World()
+    registry = TemplateRegistry(str(d))
+    city_ids, pool = GameSetupSystem.generate_map(world, registry, 4)
     
     assert len(city_ids) == 7
     assert len(pool) == 7
@@ -24,5 +25,6 @@ def test_map_generation(tmp_path):
     for cid in city_ids:
         assert "NameComponent" in world.entities[cid]
         assert world.entities[cid]["TileComponent"]["type"] == "CITY"
-        assert len(world.entities[cid]["GraphNodeComponent"]["nextTileIds"]) == 1
-        assert len(world.entities[cid]["GraphNodeComponent"]["previousTileIds"]) == 1
+        assert "HexPositionComponent" in world.entities[cid]
+        assert "q" in world.entities[cid]["HexPositionComponent"]
+        assert "r" in world.entities[cid]["HexPositionComponent"]
