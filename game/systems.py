@@ -354,6 +354,37 @@ class CombatSystem:
             LootSystem.generate_loot(world, defeated_id, winner_id)
             world.destroy_entity(defeated_id)
 
+    @staticmethod
+    def quick_resolve_combat(world, player_id, mob_id):
+        """Instantly resolves combat with a 90% player win chance. Returns a result dict."""
+        mob_name = world.get_component(mob_id, "NameComponent")
+        mob_name = mob_name.get("displayName", f"Mob {mob_id}") if mob_name else f"Mob {mob_id}"
+        
+        player_wins = random.random() < 0.9
+        
+        if player_wins:
+            # Kill the mob via standard defeat handler (handles loot + cleanup)
+            CombatSystem._handle_defeat(world, mob_id, player_id)
+            return {
+                "outcome": "win",
+                "message": f"You defeated the {mob_name}!"
+            }
+        else:
+            # Player loses — clean up combat state, apply punishment
+            if "CombatStateComponent" in world.entities.get(player_id, {}):
+                del world.entities[player_id]["CombatStateComponent"]
+            if "DicePoolComponent" in world.entities.get(player_id, {}):
+                del world.entities[player_id]["DicePoolComponent"]
+            if "CombatStateComponent" in world.entities.get(mob_id, {}):
+                del world.entities[mob_id]["CombatStateComponent"]
+            if "DicePoolComponent" in world.entities.get(mob_id, {}):
+                del world.entities[mob_id]["DicePoolComponent"]
+            world.entities[player_id]["SkipNextTurn"] = True
+            return {
+                "outcome": "loss",
+                "message": f"You were defeated by the {mob_name}! You lose your next turn."
+            }
+
 
 class LootSystem:
     @staticmethod
@@ -453,3 +484,130 @@ class TurnSystem:
 # game_world = World('data/entities.json')
 # MovementSystem.move_player(game_world, 50, 1) # Rolls a 1, moves from Tile 1 to Tile 2, triggers encounter
 # CombatSystem.resolve_attack(game_world, 50) # Player attacks Wolf
+
+class PhaseSystem:
+    """Determines available actions based on the current turn phase and player state."""
+
+    @staticmethod
+    def get_available_actions(world, player_id):
+        state = world.entities.get("GameState", {})
+        turn_phase = state.get("turn_phase", "Movement")
+        active_player_id = state.get("active_player_id")
+
+        # Not this player's turn
+        if active_player_id != player_id:
+            return {"phase": turn_phase, "is_active": False, "actions": [], "context": {}}
+
+        player = world.entities.get(player_id, {})
+        result = {"phase": turn_phase, "is_active": True, "actions": [], "context": {}}
+
+        if turn_phase == "Movement":
+            # Check if the player must skip
+            if player.get("SkipNextTurn"):
+                result["actions"].append({"action": "skip_turn", "label": "⏭️ Skip Turn (penalty)"})
+                result["context"]["skip_reason"] = "You lost your previous battle and must skip this turn."
+                return result
+
+            pending = player.get("PendingMovementComponent")
+            if not pending:
+                result["actions"].append({"action": "roll_movement", "label": "🎲 Roll Dice"})
+            else:
+                result["actions"].append({"action": "choose_die_0", "label": f"Use {pending['rolls'][0]}"})
+                result["actions"].append({"action": "choose_die_1", "label": f"Use {pending['rolls'][1]}"})
+                result["context"]["rolls"] = pending["rolls"]
+                result["context"]["instruction"] = "Choose a die, then click a tile on the map."
+
+        elif turn_phase == "Tile Resolution":
+            pos = world.get_component(player_id, "PositionComponent")
+            tile_id = pos.get("currentTileId") if pos else None
+
+            if tile_id:
+                # Check for encounter
+                encounter = world.get_component(tile_id, "EncounterComponent")
+                if encounter and "mobEntityId" in encounter and not encounter.get("isDefeated", False):
+                    mob_id = encounter["mobEntityId"]
+                    mob_name = world.get_component(mob_id, "NameComponent")
+                    mob_name = mob_name.get("displayName", f"Mob {mob_id}") if mob_name else f"Mob {mob_id}"
+                    result["context"]["encounter"] = {"mob_id": mob_id, "mob_name": mob_name}
+                    state["turn_phase"] = "Combat"
+                    result["phase"] = "Combat"
+                    result["actions"].append({"action": "quick_resolve", "label": f"⚔️ Fight {mob_name}!"})
+                    return result
+
+                # Check for items on the ground
+                items_here = []
+                for eid, comps in world.entities.items():
+                    if isinstance(eid, int) and eid != player_id:
+                        ent_pos = comps.get("PositionComponent", {})
+                        if ent_pos.get("currentTileId") == tile_id and "PickableComponent" in comps:
+                            name = comps.get("NameComponent", {}).get("displayName", f"Item {eid}")
+                            items_here.append({"id": eid, "name": name})
+
+                if items_here:
+                    for item in items_here:
+                        result["actions"].append({"action": f"pickup_{item['id']}", "label": f"📦 Pick up {item['name']}"})
+                    result["actions"].append({"action": "skip_pickup", "label": "▶ Continue"})
+                    result["context"]["items"] = items_here
+                else:
+                    state["turn_phase"] = "End Turn"
+                    result["phase"] = "End Turn"
+                    result["actions"].append({"action": "end_turn", "label": "▶ End Turn"})
+            else:
+                state["turn_phase"] = "End Turn"
+                result["phase"] = "End Turn"
+                result["actions"].append({"action": "end_turn", "label": "▶ End Turn"})
+
+        elif turn_phase == "Combat":
+            combat = world.get_component(player_id, "CombatStateComponent")
+            if combat:
+                mob_id = combat["targetEntityId"]
+                mob_name = world.get_component(mob_id, "NameComponent")
+                mob_name = mob_name.get("displayName", f"Mob {mob_id}") if mob_name else f"Mob {mob_id}"
+                result["actions"].append({"action": "quick_resolve", "label": f"⚔️ Fight {mob_name}!"})
+                result["context"]["encounter"] = {"mob_id": mob_id, "mob_name": mob_name}
+            else:
+                pos = world.get_component(player_id, "PositionComponent")
+                tile_id = pos.get("currentTileId") if pos else None
+                if tile_id:
+                    encounter = world.get_component(tile_id, "EncounterComponent")
+                    if encounter and "mobEntityId" in encounter and not encounter.get("isDefeated", False):
+                        mob_id = encounter["mobEntityId"]
+                        mob_name = world.get_component(mob_id, "NameComponent")
+                        mob_name = mob_name.get("displayName", f"Mob {mob_id}") if mob_name else f"Mob {mob_id}"
+                        result["actions"].append({"action": "quick_resolve", "label": f"⚔️ Fight {mob_name}!"})
+                        result["context"]["encounter"] = {"mob_id": mob_id, "mob_name": mob_name}
+                    else:
+                        state["turn_phase"] = "End Turn"
+                        result["phase"] = "End Turn"
+                        result["actions"].append({"action": "end_turn", "label": "▶ End Turn"})
+                else:
+                    state["turn_phase"] = "End Turn"
+                    result["phase"] = "End Turn"
+                    result["actions"].append({"action": "end_turn", "label": "▶ End Turn"})
+
+        elif turn_phase == "Reward":
+            pos = world.get_component(player_id, "PositionComponent")
+            tile_id = pos.get("currentTileId") if pos else None
+            items_here = []
+            if tile_id:
+                for eid, comps in world.entities.items():
+                    if isinstance(eid, int) and eid != player_id:
+                        ent_pos = comps.get("PositionComponent", {})
+                        if ent_pos.get("currentTileId") == tile_id and "PickableComponent" in comps:
+                            name = comps.get("NameComponent", {}).get("displayName", f"Item {eid}")
+                            items_here.append({"id": eid, "name": name})
+
+            if items_here:
+                for item in items_here:
+                    result["actions"].append({"action": f"pickup_{item['id']}", "label": f"📦 Pick up {item['name']}"})
+                result["actions"].append({"action": "skip_pickup", "label": "▶ Skip Loot"})
+                result["context"]["items"] = items_here
+            else:
+                state["turn_phase"] = "End Turn"
+                result["phase"] = "End Turn"
+                result["actions"].append({"action": "end_turn", "label": "▶ End Turn"})
+
+        elif turn_phase == "End Turn":
+            result["actions"].append({"action": "end_turn", "label": "▶ End Turn"})
+
+        return result

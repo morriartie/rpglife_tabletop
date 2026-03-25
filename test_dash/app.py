@@ -210,8 +210,8 @@ with tab1:
                 <html>
                 <head>
                     <style>
-                        body {{ margin: 0; padding: 0; overflow: hidden; background-color: #1e1e2f; color: white; font-family: sans-serif; height: 100%; }}
-                        canvas {{ display: block; width: 100%; height: 600px; }}
+                        body {{ margin: 0; padding: 0; background-color: #1e1e2f; color: white; font-family: sans-serif; height: 100%; }}
+                        canvas {{ display: block; width: 100%; height: 460px; }}
                         #tooltip {{
                             position: absolute;
                             background: rgba(0, 0, 0, 0.85);
@@ -224,6 +224,155 @@ with tab1:
                             border: 1px solid #555;
                             z-index: 10;
                             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                        }}
+                        #bottomDrawer {{
+                            position: relative;
+                            width: 100%;
+                            background: #2a2a3f;
+                            border-top: 2px solid #555;
+                            box-sizing: border-box;
+                            overflow: hidden;
+                            transition: max-height 0.3s ease;
+                            max-height: 160px;
+                        }}
+                        #bottomDrawer.collapsed {{
+                            max-height: 40px;
+                        }}
+                        #drawerHeader {{
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            padding: 8px 16px;
+                            background: #1e1e2f;
+                            border-bottom: 1px solid #444;
+                            cursor: pointer;
+                            user-select: none;
+                        }}
+                        #drawerHeader span {{
+                            font-size: 13px;
+                            font-weight: bold;
+                            color: #00e5ff;
+                        }}
+                        #drawerHeader .toggle {{
+                            font-size: 16px;
+                            color: #888;
+                        }}
+                        #drawerBody {{
+                            padding: 12px 16px;
+                            display: flex;
+                            gap: 24px;
+                            align-items: flex-start;
+                        }}
+                        #drawerActions {{
+                            display: flex;
+                            gap: 8px;
+                            flex-wrap: wrap;
+                            align-items: center;
+                        }}
+                        #drawerActions button {{
+                            padding: 8px 16px;
+                            border: none;
+                            border-radius: 6px;
+                            font-size: 13px;
+                            font-weight: bold;
+                            cursor: pointer;
+                            transition: background 0.2s, transform 0.1s;
+                            color: white;
+                            background: #4CAF50;
+                        }}
+                        #drawerActions button:hover {{
+                            filter: brightness(1.15);
+                            transform: translateY(-1px);
+                        }}
+                        #drawerActions button.secondary {{
+                            background: #555;
+                        }}
+                        #drawerActions button.danger {{
+                            background: #e53935;
+                        }}
+                        #drawerActions button.combat {{
+                            background: #ff6f00;
+                        }}
+                        #drawerFeedback {{
+                            font-size: 13px;
+                            color: #ccc;
+                            flex: 1;
+                            min-height: 20px;
+                            line-height: 1.5;
+                        }}
+                        #drawerFeedback .result-win {{ color: #4CAF50; font-weight: bold; }}
+                        #drawerFeedback .result-loss {{ color: #e53935; font-weight: bold; }}
+                        #playerMat {{
+                            background: #2a2a3f;
+                            border-top: 1px solid #444;
+                            padding: 12px 16px;
+                            display: flex;
+                            gap: 24px;
+                            font-size: 13px;
+                            color: #ccc;
+                            overflow-x: auto;
+                        }}
+                        #playerMat .mat-section {{
+                            min-width: 150px;
+                        }}
+                        #playerMat h4 {{
+                            color: #00e5ff;
+                            margin: 0 0 6px 0;
+                            font-size: 13px;
+                            text-transform: uppercase;
+                        }}
+                        #playerMat .slot {{
+                            margin-bottom: 4px;
+                        }}
+                        #playerMat .slot-name {{
+                            color: #888;
+                        }}
+                        #playerMat .slot-item {{
+                            color: #fff;
+                        }}
+                        #playerMat .hp-bar {{
+                            height: 8px;
+                            background: #444;
+                            border-radius: 4px;
+                            overflow: hidden;
+                            margin-top: 4px;
+                        }}
+                        #playerMat .hp-fill {{
+                            height: 100%;
+                            background: #4CAF50;
+                            border-radius: 4px;
+                            transition: width 0.3s;
+                        }}
+                        #playerMat .mat-player-name {{
+                            color: #fff;
+                            font-weight: bold;
+                            font-size: 14px;
+                            margin-bottom: 8px;
+                        }}
+                        #matTabs {{
+                            display: flex;
+                            gap: 0;
+                            background: #1e1e2f;
+                            border-top: 1px solid #444;
+                        }}
+                        #matTabs button {{
+                            flex: 1;
+                            padding: 8px 12px;
+                            background: #1e1e2f;
+                            color: #888;
+                            border: none;
+                            border-bottom: 2px solid transparent;
+                            font-size: 12px;
+                            font-weight: bold;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        }}
+                        #matTabs button:hover {{
+                            color: #ccc;
+                        }}
+                        #matTabs button.active {{
+                            color: #00e5ff;
+                            border-bottom-color: #00e5ff;
                         }}
                     </style>
                 </head>
@@ -239,8 +388,20 @@ with tab1:
                         <button id="spClose" style="margin-top: 25px; width: 100%; padding: 10px; background: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;">Close Panel</button>
                     </div>
                     <canvas id="gameCanvas"></canvas>
+                    <div id="bottomDrawer">
+                        <div id="drawerHeader">
+                            <span id="drawerPhaseLabel">Loading...</span>
+                            <span class="toggle" id="drawerToggle">▼</span>
+                        </div>
+                        <div id="drawerBody">
+                            <div id="drawerActions"></div>
+                            <div id="drawerFeedback"></div>
+                        </div>
+                    </div>
+                    <div id="matTabs"></div>
+                    <div id="playerMat">Loading player mat...</div>
                     <script>
-                        const PUBLIC_API_URL = `http://${{window.location.hostname}}:8001`;
+                        const PUBLIC_API_URL = `http://${{window.location.hostname || 'localhost'}}:8001`;
                         const GAME_ID = "{st.session_state.selected_game}";
                         const nodes = {json.dumps(nodes_data)};
                         const edges = {json.dumps(edges_data)};
@@ -248,7 +409,7 @@ with tab1:
                         const allEntities = {json.dumps(world_state)};
                         
                         // Find a player that belongs to this session (just take the first one for testing)
-                        const PLAYER_ID = players.length > 0 ? players[0].id : null;
+                        let PLAYER_ID = players.length > 0 ? players[0].id : null;
                         
                         const canvas = document.getElementById('gameCanvas');
                         const ctx = canvas.getContext('2d');
@@ -423,7 +584,7 @@ with tab1:
 
                         
                         let width = window.innerWidth;
-                        let height = 600;
+                        let height = 460;
                         
                         function resize() {{
                             width = window.innerWidth;
@@ -496,18 +657,31 @@ with tab1:
                             }});
 
                             // Draw preview path
-                            if (typeof currentPath !== 'undefined' && currentPath && currentPath.length > 1) {{
+                            if (typeof currentPath !== 'undefined' && currentPath && currentPath.length > 0) {{
+                                // Draw path line
+                                const fullPath = [getPlayerTileId(), ...currentPath];
                                 ctx.lineWidth = 4;
                                 ctx.strokeStyle = '#00e5ff';
+                                ctx.setLineDash([8, 4]);
                                 ctx.beginPath();
-                                for (let i = 0; i < currentPath.length; i++) {{
-                                    const p = nodePositions[currentPath[i]];
+                                for (let i = 0; i < fullPath.length; i++) {{
+                                    const p = nodePositions[fullPath[i]];
                                     if (p) {{
                                         if (i === 0) ctx.moveTo(p.x, p.y);
                                         else ctx.lineTo(p.x, p.y);
                                     }}
                                 }}
                                 ctx.stroke();
+                                ctx.setLineDash([]);
+                                
+                                // Highlight destination tile
+                                const dest = nodePositions[currentPath[currentPath.length - 1]];
+                                if (dest) {{
+                                    drawHexShape(ctx, dest.x, dest.y, dest.hexSize + 3);
+                                    ctx.lineWidth = 3;
+                                    ctx.strokeStyle = '#00e5ff';
+                                    ctx.stroke();
+                                }}
                             }}
                             
                             // Draw nodes
@@ -546,84 +720,412 @@ with tab1:
                                 }}
                             }});
                             
-                            // Draw players near their tiles
+                            // Draw reachable tile highlights
+                            if (reachableTiles.size > 0) {{
+                                const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 300);
+                                reachableTiles.forEach(tileId => {{
+                                    const pos = nodePositions[tileId];
+                                    if (pos) {{
+                                        drawHexShape(ctx, pos.x, pos.y, pos.hexSize + 3);
+                                        ctx.lineWidth = 2.5;
+                                        ctx.strokeStyle = `rgba(0, 229, 255, ${{0.4 + pulse * 0.6}})`;
+                                        ctx.stroke();
+                                    }}
+                                }});
+                                // Request animation frame to keep pulsing
+                                requestAnimationFrame(() => draw());
+                            }}
+                            
+                            // Draw players on their tiles
+                            // Group players by tile so we can offset multiples
+                            const playersByTile = {{}};
                             players.forEach((player, idx) => {{
-                                const tilePos = nodePositions[player.tile_id];
-                                if (tilePos) {{
-                                    const offsetAngle = (idx / players.length) * Math.PI * 2;
-                                    const ox = Math.cos(offsetAngle) * (tilePos.radius + 12);
-                                    const oy = Math.sin(offsetAngle) * (tilePos.radius + 12);
-                                    
-                                    const px = tilePos.x + ox;
-                                    const py = tilePos.y + oy;
+                                const tid = player.tile_id;
+                                if (!playersByTile[tid]) playersByTile[tid] = [];
+                                playersByTile[tid].push(player);
+                            }});
+                            
+                            for (const [tid, tilePlayers] of Object.entries(playersByTile)) {{
+                                const tilePos = nodePositions[tid];
+                                if (!tilePos) continue;
+                                
+                                tilePlayers.forEach((player, idx) => {{
+                                    let px, py;
+                                    if (tilePlayers.length === 1) {{
+                                        // Single player: center on hex
+                                        px = tilePos.x;
+                                        py = tilePos.y;
+                                    }} else {{
+                                        // Multiple players: spread in small cluster inside hex
+                                        const offsetAngle = (idx / tilePlayers.length) * Math.PI * 2 - Math.PI / 2;
+                                        const offsetDist = Math.min(tilePos.radius * 0.35, 14);
+                                        px = tilePos.x + Math.cos(offsetAngle) * offsetDist;
+                                        py = tilePos.y + Math.sin(offsetAngle) * offsetDist;
+                                    }}
                                     
                                     ctx.beginPath();
-                                    ctx.arc(px, py, 8, 0, Math.PI * 2);
+                                    ctx.arc(px, py, 7, 0, Math.PI * 2);
                                     ctx.fillStyle = '#ff1744';
                                     ctx.fill();
                                     ctx.lineWidth = 2;
                                     ctx.strokeStyle = '#fff';
                                     ctx.stroke();
                                     
-                                    // Player label
+                                    // Player label above dot
                                     ctx.fillStyle = '#fff';
                                     ctx.font = '11px sans-serif';
                                     ctx.textAlign = 'center';
-                                    ctx.fillText(player.name + ' (' + player.hp + '/' + player.max_hp + ')', px, py - 12);
-                                }}
-                            }});
+                                    ctx.fillText(player.name + ' (' + player.hp + '/' + player.max_hp + ')', px, py - 11);
+                                }});
+                            }}
                         }}
                         
-                        // Selected path state
+                        // ========== BOTTOM DRAWER STATE ==========
+                        const drawer = document.getElementById('bottomDrawer');
+                        const drawerHeader = document.getElementById('drawerHeader');
+                        const drawerPhaseLabel = document.getElementById('drawerPhaseLabel');
+                        const drawerToggle = document.getElementById('drawerToggle');
+                        const drawerActions = document.getElementById('drawerActions');
+                        const drawerFeedback = document.getElementById('drawerFeedback');
+                        
+                        let drawerCollapsed = false;
+                        drawerHeader.addEventListener('click', () => {{
+                            drawerCollapsed = !drawerCollapsed;
+                            drawer.classList.toggle('collapsed', drawerCollapsed);
+                            drawerToggle.textContent = drawerCollapsed ? '▲' : '▼';
+                        }});
+                        
+                        // Movement flow state
                         let currentPath = [];
                         let isPreviewing = false;
+                        let chosenDieIndex = null;
+                        let waitingForTileClick = false;
+                        let reachableTiles = new Set();
                         
+                        function getPlayerTileId() {{
+                            const p = players.find(p => p.id == PLAYER_ID);
+                            return p ? p.tile_id : null;
+                        }}
+                        
+                        function computeReachable(maxSteps) {{
+                            reachableTiles = new Set();
+                            const startTileId = getPlayerTileId();
+                            if (!startTileId) return;
+                            
+                            // Build (q,r) -> tileId lookup
+                            const hexLookup = {{}};
+                            nodes.forEach(n => {{
+                                hexLookup[n.q + ',' + n.r] = n.id;
+                            }});
+                            
+                            // Also build id -> node lookup for q,r access
+                            const nodeById = {{}};
+                            nodes.forEach(n => {{ nodeById[n.id] = n; }});
+                            
+                            // BFS from startTileId up to maxSteps
+                            const directions = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+                            let frontier = [startTileId];
+                            const visited = new Set([startTileId]);
+                            
+                            for (let step = 0; step < maxSteps; step++) {{
+                                const nextFrontier = [];
+                                for (const tileId of frontier) {{
+                                    const node = nodeById[tileId];
+                                    if (!node) continue;
+                                    for (const [dq, dr] of directions) {{
+                                        const nq = node.q + dq;
+                                        const nr = node.r + dr;
+                                        const neighborId = hexLookup[nq + ',' + nr];
+                                        if (neighborId !== undefined && !visited.has(neighborId)) {{
+                                            visited.add(neighborId);
+                                            nextFrontier.push(neighborId);
+                                            reachableTiles.add(neighborId);
+                                        }}
+                                    }}
+                                }}
+                                frontier = nextFrontier;
+                            }}
+                            draw();
+                        }}
+                        
+                        // ========== DRAWER API ==========
+                        async function fetchActions() {{
+                            if (!PLAYER_ID) {{
+                                drawerPhaseLabel.textContent = '⚠️ No player found';
+                                return;
+                            }}
+                            const url = `${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/available_actions`;
+                            try {{
+                                const res = await fetch(url);
+                                if (res.ok) {{
+                                    const data = await res.json();
+                                    renderDrawer(data);
+                                }} else {{
+                                    drawerPhaseLabel.textContent = `⚠️ API error ${{res.status}}`;
+                                }}
+                            }} catch (e) {{
+                                console.error('fetchActions error', e, 'URL:', url);
+                                drawerPhaseLabel.textContent = '⚠️ API unreachable';
+                                drawerFeedback.innerHTML = `<span style="color:#888;font-size:11px">Tried: ${{url}}</span>`;
+                            }}
+                        }}
+                        
+                        function renderDrawer(data) {{
+                            const phase = data.phase || 'Unknown';
+                            const isActive = data.is_active;
+                            const actions = data.actions || [];
+                            const ctx2 = data.context || {{}};
+                            
+                            drawerPhaseLabel.textContent = isActive 
+                                ? `⬆ ${{phase}}` 
+                                : `⏳ Waiting — ${{phase}}`;
+                            
+                            drawerActions.innerHTML = '';
+                            
+                            if (!isActive) {{
+                                drawerFeedback.innerHTML = '<span style="color:#888">Waiting for your turn...</span>';
+                                return;
+                            }}
+                            
+                            // Show context info in feedback
+                            if (ctx2.skip_reason) {{
+                                drawerFeedback.innerHTML = `<span style="color:#ff9800">${{ctx2.skip_reason}}</span>`;
+                            }} else if (ctx2.instruction) {{
+                                drawerFeedback.innerHTML = `<span style="color:#aaa">${{ctx2.instruction}}</span>`;
+                            }} else if (ctx2.encounter) {{
+                                drawerFeedback.innerHTML = `<span style="color:#ff6f00">⚔️ ${{ctx2.encounter.mob_name}} blocks your path!</span>`;
+                            }} else if (waitingForTileClick) {{
+                                // Keep current feedback
+                            }} else if (!drawerFeedback.innerHTML.includes('result-')) {{
+                                drawerFeedback.innerHTML = '';
+                            }}
+                            
+                            // Render action buttons
+                            for (const act of actions) {{
+                                const btn = document.createElement('button');
+                                btn.textContent = act.label;
+                                
+                                // Style based on action type
+                                if (act.action === 'end_turn' || act.action === 'skip_pickup' || act.action.startsWith('choose_die')) {{
+                                    btn.className = 'secondary';
+                                }} else if (act.action === 'quick_resolve') {{
+                                    btn.className = 'combat';
+                                }} else if (act.action === 'skip_turn') {{
+                                    btn.className = 'danger';
+                                }}
+                                
+                                btn.addEventListener('click', () => handleAction(act.action, ctx2));
+                                drawerActions.appendChild(btn);
+                            }}
+                        }}
+                        
+                        async function handleAction(action, ctx2) {{
+                            if (action === 'roll_movement') {{
+                                drawerFeedback.innerHTML = '<span style="color:#aaa">Rolling...</span>';
+                                try {{
+                                    const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/roll_movement`, {{ method: 'POST' }});
+                                    if (res.ok) {{
+                                        const data = await res.json();
+                                        const rolls = data.rolls;
+                                        if (rolls.skipped) {{
+                                            drawerFeedback.innerHTML = `<span style="color:#ff9800">${{rolls.message}}</span>`;
+                                            setTimeout(fetchActions, 1000);
+                                        }} else {{
+                                            drawerFeedback.innerHTML = `🎲 Rolled: <strong>${{rolls[0]}}</strong> and <strong>${{rolls[1]}}</strong> — choose one!`;
+                                            renderDrawer(data.available_actions);
+                                        }}
+                                    }}
+                                }} catch (e) {{ console.error(e); }}
+                                
+                            }} else if (action === 'choose_die_0' || action === 'choose_die_1') {{
+                                chosenDieIndex = action === 'choose_die_0' ? 0 : 1;
+                                const dieVal = ctx2.rolls ? ctx2.rolls[chosenDieIndex] : '?';
+                                waitingForTileClick = true;
+                                drawerActions.innerHTML = '';
+                                
+                                // Compute and highlight reachable tiles
+                                if (typeof dieVal === 'number') {{
+                                    computeReachable(dieVal);
+                                }}
+                                
+                                // Add cancel button
+                                const cancelBtn = document.createElement('button');
+                                cancelBtn.textContent = '↩ Cancel';
+                                cancelBtn.className = 'secondary';
+                                cancelBtn.addEventListener('click', () => {{
+                                    waitingForTileClick = false;
+                                    chosenDieIndex = null;
+                                    currentPath = [];
+                                    isPreviewing = false;
+                                    reachableTiles = new Set();
+                                    draw();
+                                    fetchActions();
+                                }});
+                                drawerActions.appendChild(cancelBtn);
+                                
+                                drawerFeedback.innerHTML = `Using die <strong>${{dieVal}}</strong> — click a highlighted tile on the map to preview your path.`;
+                                
+                            }} else if (action === 'confirm_move') {{
+                                drawerFeedback.innerHTML = '<span style="color:#aaa">Moving...</span>';
+                                try {{
+                                    const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/move_choice`, {{
+                                        method: 'POST',
+                                        headers: {{ 'Content-Type': 'application/json' }},
+                                        body: JSON.stringify({{ path: currentPath }})
+                                    }});
+                                    if (res.ok) {{
+                                        const data = await res.json();
+                                        // Update player position in JS
+                                        const newState = data.entity_state;
+                                        if (newState && newState.PositionComponent) {{
+                                            const p = players.find(p => p.id == PLAYER_ID);
+                                            if (p) p.tile_id = newState.PositionComponent.currentTileId;
+                                        }}
+                                        currentPath = [];
+                                        isPreviewing = false;
+                                        waitingForTileClick = false;
+                                        chosenDieIndex = null;
+                                        reachableTiles = new Set();
+                                        drawerFeedback.innerHTML = '<span style="color:#4CAF50">✓ Moved!</span>';
+                                        draw();
+                                        refreshPlayerMat();
+                                        // Brief pause then show next actions
+                                        setTimeout(() => renderDrawer(data.available_actions), 600);
+                                    }}
+                                }} catch (e) {{ console.error(e); }}
+                                
+                            }} else if (action === 'quick_resolve') {{
+                                drawerFeedback.innerHTML = '<span style="color:#ff6f00">⚔️ Fighting...</span>';
+                                drawerActions.innerHTML = '';
+                                try {{
+                                    const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/combat/quick_resolve`, {{ method: 'POST' }});
+                                    if (res.ok) {{
+                                        const data = await res.json();
+                                        const cssClass = data.outcome === 'win' ? 'result-win' : 'result-loss';
+                                        drawerFeedback.innerHTML = `<span class="${{cssClass}}">${{data.message}}</span>`;
+                                        refreshPlayerMat();
+                                        setTimeout(() => renderDrawer(data.available_actions), 1200);
+                                    }}
+                                }} catch (e) {{ console.error(e); }}
+                                
+                            }} else if (action.startsWith('pickup_')) {{
+                                const itemId = parseInt(action.replace('pickup_', ''));
+                                try {{
+                                    const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/pickup`, {{
+                                        method: 'POST',
+                                        headers: {{ 'Content-Type': 'application/json' }},
+                                        body: JSON.stringify({{ target_entity_id: itemId }})
+                                    }});
+                                    if (res.ok) {{
+                                        const data = await res.json();
+                                        drawerFeedback.innerHTML = `<span style="color:#4CAF50">📦 ${{data.message}}</span>`;
+                                        refreshPlayerMat();
+                                        setTimeout(() => renderDrawer(data.available_actions), 600);
+                                    }} else {{
+                                        const err = await res.json();
+                                        drawerFeedback.innerHTML = `<span style="color:#e53935">${{err.detail || 'Failed to pick up'}}</span>`;
+                                    }}
+                                }} catch (e) {{ console.error(e); }}
+                                
+                            }} else if (action === 'skip_pickup') {{
+                                try {{
+                                    const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/skip_pickup`, {{ method: 'POST' }});
+                                    if (res.ok) {{
+                                        const data = await res.json();
+                                        renderDrawer(data.available_actions);
+                                    }}
+                                }} catch (e) {{ console.error(e); }}
+                                
+                            }} else if (action === 'skip_turn') {{
+                                try {{
+                                    const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/skip_turn`, {{ method: 'POST' }});
+                                    if (res.ok) {{
+                                        const data = await res.json();
+                                        drawerFeedback.innerHTML = '<span style="color:#ff9800">Turn skipped.</span>';
+                                        setTimeout(() => renderDrawer(data.available_actions), 600);
+                                    }}
+                                }} catch (e) {{ console.error(e); }}
+                                
+                            }} else if (action === 'end_turn') {{
+                                drawerFeedback.innerHTML = '<span style="color:#aaa">Ending turn...</span>';
+                                drawerActions.innerHTML = '';
+                                try {{
+                                    const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/end_turn`, {{ method: 'POST' }});
+                                    if (res.ok) {{
+                                        const data = await res.json();
+                                        // Switch to the new active player
+                                        const newActiveId = data.game_state && data.game_state.active_player_id;
+                                        if (newActiveId !== null && newActiveId !== undefined) {{
+                                            PLAYER_ID = newActiveId;
+                                        }}
+                                        drawerFeedback.innerHTML = '<span style="color:#4CAF50">✓ Turn ended!</span>';
+                                        draw();
+                                        matPlayerId = PLAYER_ID;
+                                        buildMatTabs();
+                                        refreshPlayerMat();
+                                        setTimeout(fetchActions, 600);
+                                    }}
+                                }} catch (e) {{ console.error(e); }}
+                            }}
+                        }}
+                        
+                        // ========== PATH PREVIEW (integrated with drawer) ==========
                         async function previewPath(targetTileId) {{
-                            if (!PLAYER_ID) return;
+                            if (!PLAYER_ID || chosenDieIndex === null) {{
+                                console.warn('previewPath skipped: PLAYER_ID=', PLAYER_ID, 'chosenDieIndex=', chosenDieIndex);
+                                return;
+                            }}
+                            
+                            const url = `${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/preview_move`;
+                            const body = {{ target_tile_id: targetTileId, chosen_index: chosenDieIndex }};
+                            console.log('previewPath request:', url, body);
                             
                             try {{
-                                const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/preview_move`, {{
+                                const res = await fetch(url, {{
                                     method: 'POST',
                                     headers: {{ 'Content-Type': 'application/json' }},
-                                    body: JSON.stringify({{
-                                        target_tile_id: targetTileId,
-                                        chosen_index: 0 // testing with max distance
-                                    }})
+                                    body: JSON.stringify(body)
                                 }});
                                 
                                 if (res.ok) {{
                                     const data = await res.json();
-                                    currentPath = data.path;
+                                    console.log('previewPath response:', data);
+                                    currentPath = data.preview.path;
                                     isPreviewing = true;
-                                    draw(); // redraw with path
+                                    draw();
+                                    
+                                    // Show confirm/cancel in drawer
+                                    drawerActions.innerHTML = '';
+                                    const confirmBtn = document.createElement('button');
+                                    confirmBtn.textContent = '✅ Confirm Move';
+                                    confirmBtn.addEventListener('click', () => handleAction('confirm_move', {{}}));
+                                    drawerActions.appendChild(confirmBtn);
+                                    
+                                    const cancelBtn = document.createElement('button');
+                                    cancelBtn.textContent = '↩ Cancel';
+                                    cancelBtn.className = 'secondary';
+                                    cancelBtn.addEventListener('click', () => {{
+                                        currentPath = [];
+                                        isPreviewing = false;
+                                        waitingForTileClick = false;
+                                        chosenDieIndex = null;
+                                        reachableTiles = new Set();
+                                        draw();
+                                        fetchActions();
+                                    }});
+                                    drawerActions.appendChild(cancelBtn);
+                                    
+                                    drawerFeedback.innerHTML = `Path: ${{currentPath.length}} tile(s). Click ✅ to move.`;
+                                }} else {{
+                                    const err = await res.json();
+                                    drawerFeedback.innerHTML = `<span style="color:#e53935">${{err.detail || 'Invalid path'}}</span>`;
                                 }}
                             }} catch (e) {{
-                                console.error("Path preview err", e);
-                            }}
-                        }}
-                        
-                        async function executeMove() {{
-                            if (!PLAYER_ID || !isPreviewing || currentPath.length === 0) return;
-                            
-                            try {{
-                                const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/player/${{PLAYER_ID}}/move_choice`, {{
-                                    method: 'POST',
-                                    headers: {{ 'Content-Type': 'application/json' }},
-                                    body: JSON.stringify({{
-                                        path: currentPath
-                                    }})
-                                }});
-                                
-                                if (res.ok) {{
-                                    currentPath = [];
-                                    isPreviewing = false;
-                                    // Let streamlit auto-refresh handle it later
-                                }}
-                            }} catch (e) {{
-                                console.error("Move error", e);
+                                console.error('Path preview err', e);
                             }}
                         }}
 
+                        // ========== CANVAS EVENT HANDLERS ==========
                         canvas.addEventListener('click', (e) => {{
                             const rect = canvas.getBoundingClientRect();
                             const mx = e.clientX - rect.left;
@@ -644,10 +1146,8 @@ with tab1:
                                 showSidePanel(clicked.tile);
                                 draw();
                                 
-                                if (isPreviewing && currentPath.length > 0 && currentPath[currentPath.length - 1] === clicked.tile.id) {{
-                                    // Confirm move if clicked target again
-                                    executeMove();
-                                }} else {{
+                                // If drawer is waiting for a tile click (movement), preview the path
+                                if (waitingForTileClick && chosenDieIndex !== null) {{
                                     previewPath(clicked.tile.id);
                                 }}
                             }} else {{
@@ -679,7 +1179,6 @@ with tab1:
                                 tooltip.innerHTML = `<strong>${{hovered.tile.name}}</strong><br/><span style="color:#aaa">Type: ${{hovered.tile.type}}</span>`;
                                 document.body.style.cursor = 'pointer';
                                 
-                                // Redraw to highlight
                                 draw();
                                 drawHexShape(ctx, hovered.x, hovered.y, hovered.hexSize + 2);
                                 ctx.lineWidth = 2;
@@ -695,6 +1194,134 @@ with tab1:
                         
                         resize();
                         setTimeout(resize, 100);
+                        
+                        // ========== PLAYER MAT ==========
+                        let matPlayerId = PLAYER_ID;
+                        
+                        function buildMatTabs() {{
+                            const container = document.getElementById('matTabs');
+                            container.innerHTML = '';
+                            for (const p of players) {{
+                                const btn = document.createElement('button');
+                                btn.textContent = p.name || `Player ${{p.id}}`;
+                                if (p.id == matPlayerId) btn.className = 'active';
+                                btn.addEventListener('click', () => {{
+                                    matPlayerId = p.id;
+                                    buildMatTabs();
+                                    refreshPlayerMat();
+                                }});
+                                container.appendChild(btn);
+                            }}
+                        }}
+                        
+                        async function refreshPlayerMat() {{
+                            if (!matPlayerId) return;
+                            try {{
+                                const res = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/entity/${{matPlayerId}}`);
+                                if (!res.ok) return;
+                                const data = await res.json();
+                                const c = data.components || {{}};
+                                const name = (c.NameComponent || {{}}).displayName || `Player ${{matPlayerId}}`;
+                                const stats = c.StatsComponent || {{}};
+                                const hp = stats.currentHp || 0;
+                                const maxHp = stats.maxHp || 1;
+                                const hpPct = Math.round((hp / maxHp) * 100);
+                                const hpColor = hpPct > 50 ? '#4CAF50' : hpPct > 25 ? '#ff9800' : '#e53935';
+                                
+                                // Equipment
+                                const equip = c.EquipmentComponent || {{}};
+                                const slots = [
+                                    ['headEntityId', '🎩 Head'],
+                                    ['bodyEntityId', '👕 Body'],
+                                    ['feetEntityId', '👢 Feet'],
+                                    ['weaponEntityId', '⚔️ Weapon'],
+                                    ['ringEntityId', '💍 Ring']
+                                ];
+                                let equipHtml = '';
+                                for (const [key, label] of slots) {{
+                                    const itemId = equip[key];
+                                    if (itemId && allEntities[String(itemId)]) {{
+                                        const itemName = (allEntities[String(itemId)].NameComponent || {{}}).displayName || `Item ${{itemId}}`;
+                                        equipHtml += `<div class="slot"><span class="slot-name">${{label}}:</span> <span class="slot-item">${{itemName}}</span></div>`;
+                                    }} else {{
+                                        equipHtml += `<div class="slot"><span class="slot-name">${{label}}:</span> <span style="color:#555">Empty</span></div>`;
+                                    }}
+                                }}
+                                
+                                // Bag
+                                const inv = c.InventoryComponent || {{}};
+                                const weight = inv.currentWeight || 0;
+                                const maxWeight = inv.maxWeightCapacity || '?';
+                                const heldIds = inv.heldEntityIds || [];
+                                let bagHtml = `<div style="margin-bottom:4px">Weight: ${{weight}} / ${{maxWeight}}</div>`;
+                                if (heldIds.length === 0) {{
+                                    bagHtml += '<div style="color:#555">(Empty)</div>';
+                                }} else {{
+                                    for (const hId of heldIds) {{
+                                        // Try local cache first, then fetch from API
+                                        let hName = (allEntities[String(hId)] || {{}}).NameComponent;
+                                        if (hName) {{
+                                            bagHtml += `<div>• ${{hName.displayName}}</div>`;
+                                        }} else {{
+                                            // Fetch name from API for runtime-created items
+                                            try {{
+                                                const itemRes = await fetch(`${{PUBLIC_API_URL}}/game/${{GAME_ID}}/entity/${{hId}}`);
+                                                if (itemRes.ok) {{
+                                                    const itemData = await itemRes.json();
+                                                    const itemName = (itemData.components.NameComponent || {{}}).displayName || `Item ${{hId}}`;
+                                                    bagHtml += `<div>• ${{itemName}}</div>`;
+                                                    // Cache it
+                                                    allEntities[String(hId)] = itemData.components;
+                                                }} else {{
+                                                    bagHtml += `<div>• Item ${{hId}}</div>`;
+                                                }}
+                                            }} catch (e) {{
+                                                bagHtml += `<div>• Item ${{hId}}</div>`;
+                                            }}
+                                        }}
+                                    }}
+                                }}
+                                
+                                // Dice Pool
+                                const dicePool = (c.DicePoolComponent || {{}}).diceQueue || [];
+                                let diceHtml = '';
+                                if (dicePool.length === 0) {{
+                                    diceHtml = '<div style="color:#555">(Empty)</div>';
+                                }} else {{
+                                    for (const d of dicePool) {{
+                                        const kw = (d.keywords || []).join(', ');
+                                        diceHtml += `<div>🎲 D${{d.sides}} ${{kw ? '[' + kw + ']' : ''}}</div>`;
+                                    }}
+                                }}
+                                
+                                document.getElementById('playerMat').innerHTML = `
+                                    <div class="mat-section">
+                                        <div class="mat-player-name">${{name}}</div>
+                                        <div>❤️ ${{hp}} / ${{maxHp}}</div>
+                                        <div class="hp-bar"><div class="hp-fill" style="width:${{hpPct}}%;background:${{hpColor}}"></div></div>
+                                    </div>
+                                    <div class="mat-section">
+                                        <h4>Equipment</h4>
+                                        ${{equipHtml}}
+                                    </div>
+                                    <div class="mat-section">
+                                        <h4>Dice Pool</h4>
+                                        ${{diceHtml}}
+                                    </div>
+                                    <div class="mat-section">
+                                        <h4>Bag</h4>
+                                        ${{bagHtml}}
+                                    </div>
+                                `;
+                            }} catch (e) {{
+                                console.error('refreshPlayerMat error', e);
+                            }}
+                        }}
+                        
+                        // Initialize drawer + mat on load
+                        fetchActions();
+                        buildMatTabs();
+                        refreshPlayerMat();
                     </script>
                 </body>
                 </html>
@@ -702,71 +1329,8 @@ with tab1:
                 
                 # Render using Streamlit component
                 st.markdown("### 🗺️ World Map")
-                components.html(html_content, height=620)
+                components.html(html_content, height=780)
                 
-                # Render Player Mats
-                st.markdown("### 🪪 Player Mats")
-                for pid, p_comps in players:
-                    p_name = p_comps.get("NameComponent", {}).get("displayName", f"Player {pid}")
-                    tile_id = p_comps.get("PositionComponent", {}).get("currentTileId")
-                    location_name = "Unknown Location"
-                    if tile_id is not None:
-                        t_id = int(tile_id)
-                        if t_id in tile_map:
-                            location_name = tile_map[t_id].get("NameComponent", {}).get("displayName", f"Tile {t_id}")
-                        else:
-                            location_name = f"Tile {t_id}"
-
-                    with st.expander(f"**{p_name}** - 📍 {location_name}", expanded=False):
-                        st.markdown(f"**Current Location:** {location_name}")
-                        mat_cols = st.columns(3)
-                        
-                        # Equipment
-                        with mat_cols[0]:
-                            st.markdown("#### Equipment")
-                            equipment = p_comps.get("EquipmentComponent", {})
-                            slots = ["headEntityId", "bodyEntityId", "feetEntityId", "weaponEntityId", "ringEntityId"]
-                            slot_names = ["Head", "Body", "Feet", "Weapon", "Ring"]
-                            for slot_key, slot_name in zip(slots, slot_names):
-                                item_id = equipment.get(slot_key)
-                                if item_id:
-                                    item_comps = world_state.get(str(item_id), {})
-                                    item_name = item_comps.get("NameComponent", {}).get("displayName", f"Item {item_id}")
-                                    st.markdown(f"**{slot_name}:** {item_name}")
-                                    item_data = item_comps.get("ItemComponent", {})
-                                    dice = item_data.get("dice", [])
-                                    if dice:
-                                        for d in dice:
-                                            st.caption(f"🎲 D{d.get('sides')} [{', '.join(d.get('keywords', []))}]")
-                                else:
-                                    st.markdown(f"**{slot_name}:** *(Empty)*")
-                        
-                        # Dice Pool
-                        with mat_cols[1]:
-                            st.markdown("#### Dice Pool")
-                            dice_pool = p_comps.get("DicePoolComponent", {}).get("diceQueue", [])
-                            if not dice_pool:
-                                st.markdown("*(Empty Pool)*")
-                            else:
-                                for d in dice_pool:
-                                    src_item = d.get('sourceItemEntityId')
-                                    src_name = world_state.get(str(src_item), {}).get("NameComponent", {}).get("displayName", f"Item {src_item}") if src_item else "Unknown"
-                                    st.markdown(f"🎲 **D{d.get('sides')}** [{', '.join(d.get('keywords', []))}]<br><small>from {src_name}</small>", unsafe_allow_html=True)
-                                    
-                        # Bag
-                        with mat_cols[2]:
-                            st.markdown("#### Bag")
-                            inventory = p_comps.get("InventoryComponent", {})
-                            st.markdown(f"**Weight:** {inventory.get('currentWeight', 0)} / {inventory.get('maxWeightCapacity', '?')}")
-                            held_ids = inventory.get("heldEntityIds", [])
-                            if not held_ids:
-                                st.markdown("*(Empty Bag)*")
-                            else:
-                                for h_id in held_ids:
-                                    h_comps = world_state.get(str(h_id), {})
-                                    h_name = h_comps.get("NameComponent", {}).get("displayName", f"Item {h_id}")
-                                    st.markdown(f"- {h_name}")
-                            
             else:
                 st.error("Failed to load game state.")
         except requests.exceptions.ConnectionError:

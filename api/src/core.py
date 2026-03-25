@@ -6,7 +6,7 @@ import sys
 
 # Ensure the game module can be imported
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-from game.systems import World, MovementSystem, CombatSystem, PickupSystem, TurnSystem
+from game.systems import World, MovementSystem, CombatSystem, PickupSystem, TurnSystem, PhaseSystem
 from game.session import SessionManager
 
 router = APIRouter()
@@ -73,6 +73,15 @@ def get_template(type_name: str = Path(...)):
                 return {"status": "success", "template": template}
     raise HTTPException(status_code=404, detail=f"Template with type {type_name} not found")
 
+@router.get("/game/{game_id}/player/{player_id}/available_actions")
+def get_available_actions(game_id: str = Path(...), player_id: int = Path(...)):
+    """Returns the valid actions for the current turn phase."""
+    game_world = get_game(game_id)
+    if player_id not in game_world.entities:
+        raise HTTPException(status_code=404, detail="Player not found")
+    actions = PhaseSystem.get_available_actions(game_world, player_id)
+    return {"status": "success", **actions}
+
 @router.post("/game/{game_id}/player/{player_id}/roll_movement")
 def roll_movement(game_id: str = Path(...), player_id: int = Path(...)):
     """Roll 2d6 for movement phase."""
@@ -80,7 +89,7 @@ def roll_movement(game_id: str = Path(...), player_id: int = Path(...)):
     rolls = MovementSystem.roll_movement(game_world, player_id)
     if not rolls:
         raise HTTPException(status_code=400, detail="Cannot roll movement for this player.")
-    return {"status": "success", "rolls": rolls}
+    return {"status": "success", "rolls": rolls, "available_actions": PhaseSystem.get_available_actions(game_world, player_id)}
 
 @router.post("/game/{game_id}/player/{player_id}/preview_move")
 def preview_move(request: PreviewMoveRequest, game_id: str = Path(...), player_id: int = Path(...)):
@@ -100,10 +109,14 @@ def move_choice(request: MoveChoiceRequest, game_id: str = Path(...), player_id:
     success = MovementSystem.move_player(game_world, player_id, request.path)
     if not success:
          raise HTTPException(status_code=400, detail="Invalid movement path. Did you roll first?")
+    
+    # Auto-advance to Tile Resolution
+    game_world.entities["GameState"]["turn_phase"] = "Tile Resolution"
          
     return {
         "status": "success", 
-        "entity_state": game_world.entities.get(player_id)
+        "entity_state": game_world.entities.get(player_id),
+        "available_actions": PhaseSystem.get_available_actions(game_world, player_id)
     }
 
 @router.post("/game/{game_id}/player/{player_id}/combat/submit_dice")
@@ -130,6 +143,71 @@ def resolve_combat_turn(game_id: str = Path(...), player_id: int = Path(...)):
         "combat_log": result
     }
 
+@router.post("/game/{game_id}/player/{player_id}/combat/quick_resolve")
+def quick_resolve_combat(game_id: str = Path(...), player_id: int = Path(...)):
+    """Instantly resolve combat with 90% player win chance."""
+    game_world = get_game(game_id)
+    
+    # Find the mob to fight
+    combat = game_world.get_component(player_id, "CombatStateComponent")
+    mob_id = None
+    if combat:
+        mob_id = combat["targetEntityId"]
+    else:
+        # Try to find mob from tile encounter
+        pos = game_world.get_component(player_id, "PositionComponent")
+        if pos:
+            tile_id = pos.get("currentTileId")
+            encounter = game_world.get_component(tile_id, "EncounterComponent") if tile_id else None
+            if encounter and "mobEntityId" in encounter and not encounter.get("isDefeated", False):
+                mob_id = encounter["mobEntityId"]
+    
+    if not mob_id or mob_id not in game_world.entities:
+        raise HTTPException(status_code=400, detail="No mob to fight.")
+    
+    result = CombatSystem.quick_resolve_combat(game_world, player_id, mob_id)
+    
+    # Advance phase based on outcome
+    if result["outcome"] == "win":
+        game_world.entities["GameState"]["turn_phase"] = "Reward"
+    else:
+        game_world.entities["GameState"]["turn_phase"] = "End Turn"
+    
+    return {
+        "status": "success",
+        **result,
+        "available_actions": PhaseSystem.get_available_actions(game_world, player_id)
+    }
+
+@router.post("/game/{game_id}/player/{player_id}/skip_turn")
+def skip_turn(game_id: str = Path(...), player_id: int = Path(...)):
+    """Skip the current player's turn due to penalty."""
+    game_world = get_game(game_id)
+    player = game_world.entities.get(player_id)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+    
+    if player.get("SkipNextTurn"):
+        del player["SkipNextTurn"]
+    
+    game_world.entities["GameState"]["turn_phase"] = "End Turn"
+    
+    return {
+        "status": "success",
+        "message": "Turn skipped.",
+        "available_actions": PhaseSystem.get_available_actions(game_world, player_id)
+    }
+
+@router.post("/game/{game_id}/player/{player_id}/skip_pickup")
+def skip_pickup(game_id: str = Path(...), player_id: int = Path(...)):
+    """Skip picking up items and advance phase."""
+    game_world = get_game(game_id)
+    game_world.entities["GameState"]["turn_phase"] = "End Turn"
+    return {
+        "status": "success",
+        "available_actions": PhaseSystem.get_available_actions(game_world, player_id)
+    }
+
 @router.post("/game/{game_id}/player/{player_id}/pickup")
 def player_pickup(request: PickupRequest, game_id: str = Path(...), player_id: int = Path(...)):
     """Attempt to pick up an item."""
@@ -145,7 +223,8 @@ def player_pickup(request: PickupRequest, game_id: str = Path(...), player_id: i
     return {
         "status": "success",
         "message": f"Player {player_id} picked up item {request.target_entity_id}.",
-        "entity_state": game_world.entities.get(player_id)
+        "entity_state": game_world.entities.get(player_id),
+        "available_actions": PhaseSystem.get_available_actions(game_world, player_id)
     }
 
 @router.post("/game/{game_id}/end_turn")
@@ -157,6 +236,9 @@ def execute_end_turn(game_id: str = Path(...)):
     TurnSystem.check_boss_defeat(game_world)
     
     msg = TurnSystem.advance_turn(game_world)
+    
+    # Reset turn_phase for the new active player
+    game_world.entities["GameState"]["turn_phase"] = "Movement"
     
     return {
         "status": "success",
